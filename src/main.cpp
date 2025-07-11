@@ -12,8 +12,11 @@
 //#define dirOut2 4
 #define irSensorLeft 32
 #define irSensorRight 33
-#define thresholdL 2700
-#define thresholdR 2000
+#define thresholdL 1800
+#define thresholdR 1800
+#define maxSpeed 4000 //set a max pwm output
+#define minSpeed 0 //set a min pwm output
+#define speed 1600 //set an average speed
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -24,7 +27,6 @@ int p=0;
 int d=0;
 int m=0; // counts cycles since the reading last changed; more cycles = smaller d
 int q=0; // equivalent to m_last (last previous value of m)
-int speed=0;
 int ctrl=0;
 int dir1=1;
 int dir2=1;
@@ -87,8 +89,7 @@ int distToTape() {
 void loop() {
     last_distance=distance;
     distance = distToTape();
-    // leftVal = adc1_get_raw(ADC1_CHANNEL_4);
-    // rightVal = adc1_get_raw(ADC1_CHANNEL_5);
+    
 
     
     if(last_distance != distance) {
@@ -101,23 +102,25 @@ void loop() {
     p=kp*distance;
     d=(int) ((float)kd*(float)(distance - last_distance)/(float)(q+m));
     //i+=ki*distance;
-    ctrl=(int)(p+d)*0.8; // should be several hundred
+    ctrl=(int)(p+d); // should be several hundred
     m++; 
     
     //digitalWrite(dirOut1, dir1);
     //digitalWrite(dirOut2, dir2);
-    leftSpeed = max(speed-ctrl,500);
-    leftSpeed = min(leftSpeed,4095);
-    rightSpeed = max(speed+ctrl,500);
-    rightSpeed = min(rightSpeed,4095);
+    leftSpeed = max(speed-ctrl,minSpeed);
+    leftSpeed = min(leftSpeed,maxSpeed);
+    rightSpeed = max(speed+ctrl,minSpeed);
+    rightSpeed = min(rightSpeed,maxSpeed);
     ledcWrite(leftPwmChannel,leftSpeed);
     ledcWrite(rightPwmChannel,rightSpeed);
 
-    speed=1600;
-    // Serial.print("Left reading:");
-    // Serial.println(leftVal);
-    // Serial.print("Right reading:");
-    // Serial.println(rightVal);
+    leftVal = adc1_get_raw(ADC1_CHANNEL_4);
+    rightVal = adc1_get_raw(ADC1_CHANNEL_5);
+    
+    Serial.print("Left reading:");
+    Serial.println(leftVal);
+    Serial.print("Right reading:");
+    Serial.println(rightVal);
     // Serial.print("Distance:");
     // Serial.println(distance);
     // Serial.print("kp:");
