@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include "driver/ledc.h"
 #include "driver/adc.h"
-
+#include <ESP32Servo.h>
 // global variables and task handles
 
 TaskHandle_t drive_handle = NULL;
