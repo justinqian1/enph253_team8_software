@@ -46,6 +46,11 @@ int lastOnTape = 0; // -1: left; 1: right
 
 // put function declarations here:
 
+/**
+ * distToTape - calculates the distance to the tape based on the IR sensor readings
+ * 
+ * @return an integer indicating the robot's distance from the tape, either +/-5, +/-1, or 0 (on the line)
+ */
 int distToTape() {
     int dist = 0;
     // leftVal=0;
