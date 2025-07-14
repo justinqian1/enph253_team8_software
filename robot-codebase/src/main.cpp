@@ -10,6 +10,8 @@ TaskHandle_t grab_handle = NULL;
 TaskHandle_t reverse_handle = NULL;
 TaskHandle_t raise_basket_handle = NULL;
 TaskHandle_t home_handle = NULL;
+TaskHandle_t full_turn_handle = NULL;
+TaskHandle_t detect_handle = NULL;
 
 #define leftPwmChannel 0
 #define rightPwmChannel 1
@@ -97,12 +99,7 @@ int distToTape() {
     return dist;
 }
 
-// create tasks here --> main robot functions
-
-void drive(void* parameters) {
-  //this creates an infinite loop, but it will be interrupted by other actions
-  for(;;) {
-    // driving code here, mostly PID control
+void drive(int avgSpeedInput) {
     last_distance=distance;
     distance = distToTape();
     
@@ -123,9 +120,9 @@ void drive(void* parameters) {
     
     digitalWrite(dirOut1, dir1);
     digitalWrite(dirOut2, dir2);
-    leftSpeed = max(speed-ctrl,minSpeed);
+    leftSpeed = max(avgSpeedInput-ctrl,minSpeed);
     leftSpeed = min(leftSpeed,maxSpeed);
-    rightSpeed = max(speed+ctrl,minSpeed);
+    rightSpeed = max(avgSpeedInput+ctrl,minSpeed);
     rightSpeed = min(rightSpeed,maxSpeed);
     ledcWrite(leftPwmChannel,leftSpeed);
     ledcWrite(rightPwmChannel,rightSpeed);
@@ -148,16 +145,26 @@ void drive(void* parameters) {
     // Serial.print("Speed right:");
     // Serial.println(rightSpeed);
 
+}
+
+// create tasks here --> main robot functions
+
+void drive_task(void* parameters) {
+  //this creates an infinite loop, but it will be interrupted by other actions
+  for(;;) {
+
+    drive(speed);
+
     // the vTaskDelay function takes in ticks as a time measurement, so / portTick_PERIOD_MS converts to ms
     vTaskDelay(4 / portTICK_PERIOD_MS);
   }
 }
 
-void grab(void* paramters) {
+void grab_task(void* paramters) {
   // grabbing code here, feel free to change parameters
 }
 
-void reverse(void* parameters) {
+void reverse_task(void* parameters) {
   
   // waits for third switch press before intiating reverse + basket raise (first hit at the door, second when going up the ramp, final on the zipline)
   uint32_t pressCount = 0;
@@ -186,7 +193,7 @@ void reverse(void* parameters) {
   }
 }
 
-void raise_basket(void* parameters) {
+void raise_basket_task(void* parameters) {
   
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
   for(;;) {
@@ -198,12 +205,16 @@ void raise_basket(void* parameters) {
   }
 }
 
-void home(void* parameters) {
+void home_task(void* parameters) {
   // homing sequence, to be run once at startup and then deleted
 }
 
-void full_turn(void* parameters) {
+void full_turn_task(void* parameters) {
   // full 180 turn sequence here, for once 90 second hard limit reached
+}
+
+void detect_task(void* parameters) {
+  // detection code for determining pet location
 }
 
 // add more functions here
@@ -227,7 +238,7 @@ void setup() {
 
   // create tasks associated with functions defined above 
   xTaskCreate(
-    drive, // function to be run
+    drive_task, // function to be run
     "Driving", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
@@ -236,25 +247,25 @@ void setup() {
   ); 
 
   xTaskCreate(
-    grab, // function to be run
+    grab_task, // function to be run
     "Grabbing", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
-    1, // priority
+    3, // priority
     &grab_handle // task handle
   ); 
 
   xTaskCreate(
-    reverse, // function to be run
+    reverse_task, // function to be run
     "Reversing", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
-    1, // priority  
+    3, // priority  
     &reverse_handle // task handle
   ); 
 
   xTaskCreate(
-    raise_basket, // function to be run
+    raise_basket_task, // function to be run
     "Raising Basket", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
@@ -263,12 +274,30 @@ void setup() {
   ); 
 
   xTaskCreate(
-    home, // function to be run
+    home_task, // function to be run
     "Homing", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
     1, // priority
     &home_handle // task handle
+  ); 
+
+  xTaskCreate(
+    full_turn_task, // function to be run
+    "Turning (360)", // description of task
+    1000, // bytes allocated to this stack
+    NULL, // parameters, dependent on function
+    3, // priority
+    &detect_handle // task handle
+  );
+
+  xTaskCreate(
+    detect_task, // function to be run
+    "Detecting", // description of task
+    1000, // bytes allocated to this stack
+    NULL, // parameters, dependent on function
+    2, // priority
+    &detect_handle // task handle
   ); 
   
   // Servo setups
