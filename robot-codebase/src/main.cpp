@@ -2,7 +2,7 @@
 #include "driver/ledc.h"
 #include "driver/adc.h"
 #include <ESP32Servo.h>
-
+#include "driver/gpio.h"
 // global variables and task handles
 
 TaskHandle_t drive_handle = NULL;
@@ -30,6 +30,7 @@ TaskHandle_t detect_handle = NULL;
 #define SG90Pin 14
 #define DSPin 12
 #define MG996RPin 13
+#define basketSwitch 39
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -166,6 +167,12 @@ void driveReverse(int avgSpeedInput) {
 void stopMotors() {
   ledcWrite(leftPwmChannel,0);
   ledcWrite(rightPwmChannel,0);
+}
+
+void IRAM_ATTR basketSwitchPressedISR() {
+  BaseType_t hpw = pdFALSE;
+  vTaskNotifyGiveFromISR(reverse_handle, &hpw);
+  portYIELD_FROM_ISR(&hpw);
 }
 
 // create tasks here --> main robot functions
