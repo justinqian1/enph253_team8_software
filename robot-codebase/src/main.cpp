@@ -43,6 +43,7 @@ int rightVal=0;
 int leftSpeed=0;
 int rightSpeed=0;
 int lastOnTape = 0; // -1: left; 1: right
+uint32_t reverseMultiplier = 0.3;
 
 // put function declarations here:
 
@@ -143,15 +144,48 @@ void grab(void* paramters) {
 }
 
 void reverse(void* parameters) {
-  // reverse code for aligning with zipline
+  
+  // waits for third switch press before intiating reverse + basket raise (first hit at the door, second when going up the ramp, final on the zipline)
+  uint32_t pressCount = 0;
+  while (pressCount < 3) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    pressCount++;
+  }
+
+  for(;;) {
+    // reverse code for aligning with zipline
+    vTaskSuspend(&drive_handle);
+    // reverse direction and drive slowly backwards (depending on reverseMultiplier) for two seconds
+    dir1 = 0;
+    dir2 = 0;
+    digitalWrite(dirOut1, dir1);
+    digitalWrite(dirOut2, dir2);
+    ledcWrite(leftPwmChannel,maxSpeed* reverseMultiplier);
+    ledcWrite(rightPwmChannel,maxSpeed* reverseMultiplier);
+    vTaskDelay(2000 / portTICK_PERIOD_MS);
+    //stop motors for basket raise
+    ledcWrite(leftPwmChannel,0);
+    ledcWrite(rightPwmChannel,0);
+
+    //signals to start basket raising code
+    xTaskNotifyGive(&raise_basket_handle);
+  }
 }
 
 void raise_basket(void* parameters) {
+  
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+  for(;;) {
   // raising basket code here
+  }
 }
 
 void home(void* parameters) {
   // homing sequence, to be run once at startup and then deleted
+}
+
+void full_turn(void* parameters) {
+  // full 180 turn sequence here, for once 90 second hard limit reached
 }
 
 // add more functions here
