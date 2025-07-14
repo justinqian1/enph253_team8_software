@@ -3,6 +3,7 @@
 #include "driver/adc.h"
 #include <ESP32Servo.h>
 #include "driver/gpio.h"
+#include <HardwareSerial.h>
 // global variables and task handles
 
 TaskHandle_t drive_handle = NULL;
@@ -12,6 +13,10 @@ TaskHandle_t raise_basket_handle = NULL;
 TaskHandle_t home_handle = NULL;
 TaskHandle_t full_turn_handle = NULL;
 TaskHandle_t detect_handle = NULL;
+
+// initialize serial port for Pi communication
+
+HardwareSerial Serial2Pi(2); // for UART 2
 
 #define leftPwmChannel 0
 #define rightPwmChannel 1
@@ -31,6 +36,8 @@ TaskHandle_t detect_handle = NULL;
 #define DSPin 12
 #define MG996RPin 13
 #define basketSwitch 39
+#define RX 7 // I'm moving some pins around just for code simplicity but these can change later
+#define TX 8 // same as above
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -169,6 +176,8 @@ void stopMotors() {
   ledcWrite(rightPwmChannel,0);
 }
 
+// This is an ISR implementation of the button press interrupt for the reversing and basket raising mechanism
+// it sends a notification to the reverse_task to commence (after three presses)
 void IRAM_ATTR basketSwitchPressedISR() {
   BaseType_t hpw = pdFALSE;
   vTaskNotifyGiveFromISR(reverse_handle, &hpw);
@@ -177,12 +186,11 @@ void IRAM_ATTR basketSwitchPressedISR() {
 
 // create tasks here --> main robot functions
 
+// this is a low priority task that will be interrupted by other actions
 void drive_task(void* parameters) {
   //this creates an infinite loop, but it will be interrupted by other actions
   for(;;) {
-
     drive(speed);
-
     // the vTaskDelay function takes in ticks as a time measurement, so / portTick_PERIOD_MS converts to ms
     vTaskDelay(4 / portTICK_PERIOD_MS);
   }
@@ -244,6 +252,9 @@ void detect_task(void* parameters) {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  //initialize UART connection to the Pi
+  Serial2Pi.begin(9600,SERIAL_8N1, RX, TX);
+  Serial2Pi.write("Hello from the ESP32!");
 
   // initialize adc channels for pwm signals to operate drive
   adc1_config_width(ADC_WIDTH_BIT_12);
