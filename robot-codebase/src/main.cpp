@@ -50,7 +50,7 @@ int rightVal=0;
 int leftSpeed=0;
 int rightSpeed=0;
 int lastOnTape = 0; // -1: left; 1: right
-uint32_t reverseMultiplier = 0.3;
+uint32_t reverseMultiplier = 0.3; // percentage speed of average speed for driving backwards
 
 Servo SG90;
 uint32_t SG90Pos = 0;
@@ -147,6 +147,27 @@ void drive(int avgSpeedInput) {
 
 }
 
+/**
+ * driveReverse - drives the robot in reverse in a straight line without PID control
+ * 
+ * @avgSpeedInput the speed at which to drive backwards
+ */
+void driveReverse(int avgSpeedInput) {
+  digitalWrite(dirOut1, 0);
+  digitalWrite(dirOut2, 0);
+  ledcWrite(leftPwmChannel,avgSpeedInput);
+  ledcWrite(rightPwmChannel,avgSpeedInput);
+}
+
+/**
+ * stopMotors - stops both motors entirely 
+ *              no guarantees about stopping motion of robot entirely (backlash, momentum, etc...)
+ */
+void stopMotors() {
+  ledcWrite(leftPwmChannel,0);
+  ledcWrite(rightPwmChannel,0);
+}
+
 // create tasks here --> main robot functions
 
 void drive_task(void* parameters) {
@@ -177,16 +198,10 @@ void reverse_task(void* parameters) {
     // reverse code for aligning with zipline
     vTaskSuspend(&drive_handle);
     // reverse direction and drive slowly backwards (depending on reverseMultiplier) for two seconds
-    dir1 = 0;
-    dir2 = 0;
-    digitalWrite(dirOut1, dir1);
-    digitalWrite(dirOut2, dir2);
-    ledcWrite(leftPwmChannel,maxSpeed* reverseMultiplier);
-    ledcWrite(rightPwmChannel,maxSpeed* reverseMultiplier);
+    driveReverse(speed*reverseMultiplier);
     vTaskDelay(2000 / portTICK_PERIOD_MS);
     //stop motors for basket raise
-    ledcWrite(leftPwmChannel,0);
-    ledcWrite(rightPwmChannel,0);
+    stopMotors();
 
     //signals to start basket raising code
     xTaskNotifyGive(&raise_basket_handle);
