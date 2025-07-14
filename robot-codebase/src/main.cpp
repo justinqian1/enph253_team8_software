@@ -184,10 +184,31 @@ void IRAM_ATTR basketSwitchPressedISR() {
   portYIELD_FROM_ISR(&hpw);
 }
 
+void home() {
+  /**
+   * Code for homing sequence to run on startup, including:
+   * Homing DC motors using limit switches (2 motors)
+   * Setting all servo motor positions to 0
+   */
+
+  SG90Pos = 0;
+  DSPos = 0;
+  MG996RPos = 0;
+
+  SG90.write(SG90Pos);
+  DS.write(DSPos);
+  MG996R.write(MG996RPos);
+
+  // INCLUDE CODE FOR HOMING MOTORS
+  
+}
 // create tasks here --> main robot functions
 
 // this is a low priority task that will be interrupted by other actions
 void drive_task(void* parameters) {
+
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
   //this creates an infinite loop, but it will be interrupted by other actions
   for(;;) {
     drive(speed);
@@ -237,6 +258,11 @@ void raise_basket_task(void* parameters) {
 
 void home_task(void* parameters) {
   // homing sequence, to be run once at startup and then deleted
+  home();
+
+  // start driving and then delete this task as it will not occur again.
+  xTaskNotifyGive(&drive_handle);
+  vTaskDelete(NULL);
 }
 
 void full_turn_task(void* parameters) {
@@ -307,12 +333,13 @@ void setup() {
     &raise_basket_handle // task handle
   ); 
 
+  // high priority task since it occurs on startup
   xTaskCreate(
     home_task, // function to be run
     "Homing", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
-    1, // priority
+    5, // priority
     &home_handle // task handle
   ); 
 
