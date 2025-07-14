@@ -21,14 +21,12 @@ HardwareSerial Serial2Pi(2); // for UART 2
 
 #define leftPwmChannel 0
 #define rightPwmChannel 1
-// THIS PIN WILL NEED TO BE CHANGED EVENTUALLY SO THAT IT LINES UP WITH SCHEMATIC
-#define pwmOut1 13 //outputs the pwm channel according to ledcAttachPin
-#define dirOut1 26
-#define pwmOut2 4
-#define dirOut2 4
-// THESE PINS WILL ALSO NEED TO BE REMAPPEDD EVENTUALLY
-#define irSensorLeft 32
-#define irSensorRight 33
+#define pwmOut1 20 //outputs the pwm channel according to ledcAttachPin
+#define dirOut1 21
+#define pwmOut2 22
+#define dirOut2 19
+#define irSensorLeft 9
+#define irSensorRight 35
 #define thresholdL 1800
 #define thresholdR 1800
 #define maxSpeed 4000 //set a max pwm output
