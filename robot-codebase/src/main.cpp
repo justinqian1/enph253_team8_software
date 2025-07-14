@@ -2,6 +2,7 @@
 #include "driver/ledc.h"
 #include "driver/adc.h"
 #include <ESP32Servo.h>
+
 // global variables and task handles
 
 TaskHandle_t drive_handle = NULL;
@@ -12,6 +13,7 @@ TaskHandle_t home_handle = NULL;
 
 #define leftPwmChannel 0
 #define rightPwmChannel 1
+// THIS PIN WILL NEED TO BE CHANGED EVENTUALLY SO THAT IT LINES UP WITH SCHEMATIC
 #define pwmOut1 13 //outputs the pwm channel according to ledcAttachPin
 #define dirOut1 26
 #define pwmOut2 4
@@ -24,6 +26,8 @@ TaskHandle_t home_handle = NULL;
 #define minSpeed 0 //set a min pwm output
 #define speed 1600 //set an average speed
 #define SG90Pin 14
+#define DSPin 12
+#define MG996RPin 13
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -48,6 +52,12 @@ uint32_t reverseMultiplier = 0.3;
 
 Servo SG90;
 uint32_t SG90Pos = 0;
+
+Servo DS;
+uint32_t DSPos = 0;
+
+Servo MG996R;
+uint32_t MG996RPos = 0;
 
 // put function declarations here:
 
@@ -261,8 +271,17 @@ void setup() {
     &home_handle // task handle
   ); 
   
+  // Servo setups
   SG90.setPeriodHertz(50);
   SG90.attach(SG90Pin,500,2400);
+
+  DS.setPeriodHertz(50);
+  DS.attach(DSPin,500,2400);
+
+  MG996R.setPeriodHertz(50);
+  MG996R.attach(MG996RPin,500,2400);
+
+
 }
 
 void loop() {
