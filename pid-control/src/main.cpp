@@ -55,6 +55,11 @@ void setup() {
     //pinMode(dirOut2,OUTPUT);
 }
 
+/**
+ * distToTape - calculate the distance from the tape based on IR sensor readings
+ * 
+ * @return an integer that indicates distance to the tape, either +/- 5, +/- 1, or 0 (on the line)
+ */
 int distToTape() {
     int dist = 0;
     // leftVal=0;
