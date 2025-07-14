@@ -198,8 +198,8 @@ void raise_basket_task(void* parameters) {
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
   for(;;) {
   // raise basket by rotating SG90 by 90 degrees slowly (hence the delays)
-    while(SG90Pos < 90) {
-      SG90.write(++SG90Pos);
+    while(MG996RPos < 90) {
+      MG996R.write(++MG996RPos);
       vTaskDelay(10 / portTICK_PERIOD_MS);
     }
   }
@@ -237,6 +237,7 @@ void setup() {
   ledcAttachPin(pwmOut2,rightPwmChannel); //both motors controlled by same pwm channel
 
   // create tasks associated with functions defined above 
+  // priorities are temporary and TBD
   xTaskCreate(
     drive_task, // function to be run
     "Driving", // description of task
