@@ -9,8 +9,8 @@ TaskHandle_t grab_handle = NULL;
 TaskHandle_t reverse_handle = NULL;
 TaskHandle_t raise_basket_handle = NULL;
 TaskHandle_t home_handle = NULL;
-// put function declarations here:
 
+// put function declarations here:
 
 
 // create tasks here --> main robot functions
@@ -43,9 +43,10 @@ void home(void* parameters) {
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
+  // create tasks associated with functions defined above 
   xTaskCreate(
     drive, // function to be run
-    "Drive", // description of task
+    "Driving", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
     1, // priority
@@ -54,7 +55,7 @@ void setup() {
 
   xTaskCreate(
     grab, // function to be run
-    "Grab", // description of task
+    "Grabbing", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
     1, // priority
@@ -63,7 +64,7 @@ void setup() {
 
   xTaskCreate(
     reverse, // function to be run
-    "Reverse", // description of task
+    "Reversing", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
     1, // priority
@@ -72,7 +73,7 @@ void setup() {
 
   xTaskCreate(
     raise_basket, // function to be run
-    "Raise Basket", // description of task
+    "Raising Basket", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
     1, // priority
