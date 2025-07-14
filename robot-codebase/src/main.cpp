@@ -127,6 +127,8 @@ void drive(void* parameters) {
     // Serial.println(leftSpeed);
     // Serial.print("Speed right:");
     // Serial.println(rightSpeed);
+
+    // the vTaskDelay function takes in ticks as a time measurement, so / portTick_PERIOD_MS converts to ms
     vTaskDelay(4 / portTICK_PERIOD_MS);
   }
 }
