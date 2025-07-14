@@ -283,6 +283,8 @@ void detect_task(void* parameters) {
 }
 
 void idle_task(void* parameters) {
+
+  // initiate idling once homing is finished
   
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
