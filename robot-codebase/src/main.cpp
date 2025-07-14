@@ -13,6 +13,7 @@ TaskHandle_t raise_basket_handle = NULL;
 TaskHandle_t home_handle = NULL;
 TaskHandle_t full_turn_handle = NULL;
 TaskHandle_t detect_handle = NULL;
+TaskHandle_t idle_handle = NULL;
 
 // initialize serial port for Pi communication
 
@@ -25,6 +26,7 @@ HardwareSerial Serial2Pi(2); // for UART 2
 #define dirOut1 26
 #define pwmOut2 4
 #define dirOut2 4
+// THESE PINS WILL ALSO NEED TO BE REMAPPEDD EVENTUALLY
 #define irSensorLeft 32
 #define irSensorRight 33
 #define thresholdL 1800
@@ -38,6 +40,7 @@ HardwareSerial Serial2Pi(2); // for UART 2
 #define basketSwitch 39
 #define RX 7 // I'm moving some pins around just for code simplicity but these can change later
 #define TX 8 // same as above
+#define startSwitch 32
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -184,6 +187,12 @@ void IRAM_ATTR basketSwitchPressedISR() {
   portYIELD_FROM_ISR(&hpw);
 }
 
+// Another ISR implementation for the start button to go (can also be a switch)
+void IRAM_ATTR startButtonPressedISR() {
+  BaseType_t hpw = pdFALSE; 
+  vTaskNotifyGiveFromISR(idle_handle, &hpw);
+  portYIELD_FROM_ISR(&hpw);
+}
 void home() {
   /**
    * Code for homing sequence to run on startup, including:
@@ -261,7 +270,7 @@ void home_task(void* parameters) {
   home();
 
   // start driving and then delete this task as it will not occur again.
-  xTaskNotifyGive(&drive_handle);
+  xTaskNotifyGive(&idle_handle);
   vTaskDelete(NULL);
 }
 
@@ -271,6 +280,19 @@ void full_turn_task(void* parameters) {
 
 void detect_task(void* parameters) {
   // detection code for determining pet location
+}
+
+void idle_task(void* parameters) {
+  
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+  // idling until start button is pressed
+
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+  xTaskNotifyGive(&drive_handle);
+
+  vTaskDelete(NULL);
 }
 
 // add more functions here
@@ -294,6 +316,13 @@ void setup() {
   ledcSetup(rightPwmChannel,250,12);
   ledcAttachPin(pwmOut1,leftPwmChannel);
   ledcAttachPin(pwmOut2,rightPwmChannel); //both motors controlled by same pwm channel
+
+  // attach pins for ISRs
+
+  pinMode(startSwitch, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(startSwitch), startButtonPressedISR, RISING);
+  pinMode(basketSwitch, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(basketSwitch), basketSwitchPressedISR, RISING);
 
   // create tasks associated with functions defined above 
   // priorities are temporary and TBD
@@ -359,6 +388,15 @@ void setup() {
     NULL, // parameters, dependent on function
     2, // priority
     &detect_handle // task handle
+  ); 
+
+  xTaskCreate(
+    idle_task, // function to be run
+    "Idling", // description of task
+    1000, // bytes allocated to this stack
+    NULL, // parameters, dependent on function
+    6, // priority
+    &idle_handle // task handle
   ); 
   
   // Servo setups
