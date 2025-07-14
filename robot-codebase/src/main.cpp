@@ -23,6 +23,7 @@ TaskHandle_t home_handle = NULL;
 #define maxSpeed 4000 //set a max pwm output
 #define minSpeed 0 //set a min pwm output
 #define speed 1600 //set an average speed
+#define SG90Pin 14
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -44,6 +45,9 @@ int leftSpeed=0;
 int rightSpeed=0;
 int lastOnTape = 0; // -1: left; 1: right
 uint32_t reverseMultiplier = 0.3;
+
+Servo SG90;
+uint32_t SG90Pos = 0;
 
 // put function declarations here:
 
@@ -176,7 +180,11 @@ void raise_basket(void* parameters) {
   
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
   for(;;) {
-  // raising basket code here
+  // raise basket by rotating SG90 by 90 degrees slowly (hence the delays)
+    while(SG90Pos < 90) {
+      SG90.write(++SG90Pos);
+      vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
   }
 }
 
@@ -252,7 +260,9 @@ void setup() {
     1, // priority
     &home_handle // task handle
   ); 
-    
+  
+  SG90.setPeriodHertz(50);
+  SG90.attach(SG90Pin,500,2400);
 }
 
 void loop() {
