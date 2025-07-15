@@ -59,6 +59,7 @@ int rightVal=0;
 int leftSpeed=0;
 int rightSpeed=0;
 int lastOnTape = 0; // -1: left; 1: right
+unsigned long startTime = 0;
 uint32_t reverseMultiplier = 0.3; // percentage speed of average speed for driving backwards
 
 Servo SG90;
@@ -219,6 +220,10 @@ void drive_task(void* parameters) {
   //this creates an infinite loop, but it will be interrupted by other actions
   for(;;) {
     drive(speed);
+
+    if (millis() - startTime > 90000) {
+      xTaskNotifyGive(&full_turn_handle);
+    }
     // the vTaskDelay function takes in ticks as a time measurement, so / portTick_PERIOD_MS converts to ms
     vTaskDelay(4 / portTICK_PERIOD_MS);
   }
@@ -274,6 +279,15 @@ void home_task(void* parameters) {
 
 void full_turn_task(void* parameters) {
   // full 180 turn sequence here, for once 90 second hard limit reached
+  ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+  // abort all other actions
+  vTaskSuspendAll();
+
+  // hard code in 90-degree turn
+
+  // drive back to the start  (hopefully 180 turn lines up with tape)
+  vTaskResume(&drive_handle);
 }
 
 void detect_task(void* parameters) {
@@ -291,6 +305,8 @@ void idle_task(void* parameters) {
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
   xTaskNotifyGive(&drive_handle);
+
+  startTime = millis();
 
   vTaskDelete(NULL);
 }
@@ -372,12 +388,13 @@ void setup() {
     &home_handle // task handle
   ); 
 
+  // high priority task since it overrides all other functions once 90 seconds are triggered
   xTaskCreate(
     full_turn_task, // function to be run
     "Turning (360)", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
-    3, // priority
+    5, // priority
     &detect_handle // task handle
   );
 
@@ -414,6 +431,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-}
 
-// put function definitions here:
+  // to be left empty, robot should run in the freeRTOS task scheduler
+}
