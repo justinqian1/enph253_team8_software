@@ -190,6 +190,24 @@ void stopMotors() {
   ledcWrite(rightPwmChannel,0);
 }
 
+void home() {
+  /**
+   * Code for homing sequence to run on startup, including:
+   * Homing DC motors using limit switches (2 motors)
+   * Setting all servo motor positions to 0
+   */
+
+  SG90Pos = 0;
+  DSPos = 0;
+  MG996RPos = 0;
+
+  SG90.write(SG90Pos);
+  DS.write(DSPos);
+  MG996R.write(MG996RPos);
+
+
+
+}
 // This is an ISR implementation of the button press interrupt for the reversing and basket raising mechanism
 // it sends a notification to the reverse_task to commence (after three presses)
 void IRAM_ATTR basketSwitchPressedISR() {
@@ -229,24 +247,6 @@ void IRAM_ATTR horiClawHHighPressedISR() {
   portYIELD_FROM_ISR(&hpw);
 }
 
-void home() {
-  /**
-   * Code for homing sequence to run on startup, including:
-   * Homing DC motors using limit switches (2 motors)
-   * Setting all servo motor positions to 0
-   */
-
-  SG90Pos = 0;
-  DSPos = 0;
-  MG996RPos = 0;
-
-  SG90.write(SG90Pos);
-  DS.write(DSPos);
-  MG996R.write(MG996RPos);
-
-  
-  
-}
 // create tasks here --> main robot functions
 
 // this is a low priority task that will be interrupted by other actions
