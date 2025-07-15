@@ -21,6 +21,8 @@ HardwareSerial Serial2Pi(2); // for UART 2
 
 #define leftPwmChannel 0
 #define rightPwmChannel 1
+#define carriagePWMChannel 2
+#define clawExtPWMChannel 3
 #define pwmOut1 20 //outputs the pwm channel according to ledcAttachPin
 #define dirOut1 21
 #define pwmOut2 22
@@ -36,7 +38,7 @@ HardwareSerial Serial2Pi(2); // for UART 2
 #define DSPin 12
 #define MG996RPin 13
 #define basketSwitch 25
-#define RX 7 // I'm moving some pins around just for code simplicity but these can change later
+#define RX 7 // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 #define TX 8 // same as above
 #define startSwitch 39
 #define vertClawLOW 26
@@ -47,6 +49,7 @@ HardwareSerial Serial2Pi(2); // for UART 2
 #define carriageMotorDir 10
 #define clawExtMotorPWM 15
 #define clawExtMotorDir 2
+#define rotaryEncoder 4
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -69,6 +72,7 @@ int rightSpeed=0;
 int lastOnTape = 0; // -1: left; 1: right
 unsigned long startTime = 0;
 uint32_t reverseMultiplier = 0.3; // percentage speed of average speed for driving backwards
+int rotaryCounter = 0;
 
 Servo SG90;
 uint32_t SG90Pos = 0;
@@ -343,7 +347,7 @@ void idle_task(void* parameters) {
   // idling until start button is pressed
 
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
+  
   xTaskNotifyGive(&drive_handle);
 
   startTime = millis();
@@ -370,10 +374,14 @@ void setup() {
 
   ledcSetup(leftPwmChannel,250,12); //middle number: duty cycle resolution in hz
   ledcSetup(rightPwmChannel,250,12);
-  ledcSetup(carriageMotorPWM,250,12);
   ledcAttachPin(pwmOut1,leftPwmChannel);
   ledcAttachPin(pwmOut2,rightPwmChannel); //both motors controlled by same pwm channel
 
+  ledcSetup(carriagePWMChannel,250,12);
+  ledcAttachPin(carriageMotorPWM, carriagePWMChannel);
+
+  ledcSetup(clawExtPWMChannel,250,12);
+  ledcAttachPin(clawExtMotorPWM,  clawExtPWMChannel);
   // attach pins for ISRs
 
   pinMode(startSwitch, INPUT_PULLUP);
