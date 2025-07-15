@@ -4,52 +4,53 @@
 #include <ESP32Servo.h>
 #include "driver/gpio.h"
 #include <HardwareSerial.h>
+
 // global variables and task handles
 
-TaskHandle_t drive_handle = NULL;
-TaskHandle_t grab_handle = NULL;
-TaskHandle_t reverse_handle = NULL;
-TaskHandle_t raise_basket_handle = NULL;
-TaskHandle_t home_handle = NULL;
-TaskHandle_t full_turn_handle = NULL;
-TaskHandle_t detect_handle = NULL;
-TaskHandle_t idle_handle = NULL;
+TaskHandle_t drive_handle = nullptr;
+TaskHandle_t grab_handle = nullptr;
+TaskHandle_t reverse_handle = nullptr;
+TaskHandle_t raise_basket_handle = nullptr;
+TaskHandle_t home_handle = nullptr;
+TaskHandle_t full_turn_handle = nullptr;
+TaskHandle_t detect_handle = nullptr;
+TaskHandle_t idle_handle = nullptr;
 
 // initialize serial port for Pi communication
 
 HardwareSerial Serial2Pi(2); // for UART 2
 
-constexpr int leftPwmChannel 0
-constexpr int rightPwmChannel 1
-constexpr int carriagePWMChannel 2
-constexpr int clawExtPWMChannel 3
-constexpr int pwmOut1 20 //outputs the pwm channel according to ledcAttachPin
-constexpr int dirOut1 21
-constexpr int pwmOut2 22
-constexpr int dirOut2 19
-constexpr int irSensorLeft 9
-constexpr int irSensorRight 35
-constexpr int thresholdL 1800
-constexpr int thresholdR 1800
-constexpr int maxSpeed 4000 //set a max pwm output
-constexpr int minSpeed 0 //set a min pwm output
-constexpr int speed 1600 //set an average speed
-constexpr int SG90Pin 14
-constexpr int DSPin 12
-constexpr int MG996RPin 13
-constexpr int basketSwitch 25
-constexpr int RX 7 // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
-constexpr int TX 8 // same as above
-constexpr int startSwitch 39
-constexpr int vertClawLOW 26
-constexpr int vertClawHIGH 32
-constexpr int horiClawLOW 33
-constexpr int horiClawHIGH 27
-constexpr int carriageMotorPWM 5
-constexpr int carriageMotorDir 10
-constexpr int clawExtMotorPWM 15
-constexpr int clawExtMotorDir 2
-constexpr int rotaryEncoder 4
+constexpr int leftPwmChannel = 0;
+constexpr int rightPwmChannel = 1;
+constexpr int carriagePWMChannel = 2;
+constexpr int clawExtPWMChannel = 3;
+constexpr int pwmOut1 = 20; //outputs the pwm channel according to ledcAttachPin
+constexpr int dirOut1 = 21;
+constexpr int pwmOut2 = 22;
+constexpr int dirOut2 = 19;
+constexpr int irSensorLeft = 9;
+constexpr int irSensorRight = 35;
+constexpr int thresholdL = 1800;
+constexpr int thresholdR = 1800;
+constexpr int maxSpeed = 4000; //set a max pwm output
+constexpr int minSpeed = 0; //set a min pwm output
+constexpr int speed = 1600; //set an average speed
+constexpr int SG90Pin = 14;
+constexpr int DSPin = 12;
+constexpr int MG996RPin = 13;
+constexpr int basketSwitch = 25;
+constexpr int RX = 7; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
+constexpr int TX = 8; // same as above
+constexpr int startSwitch = 39;
+constexpr int vertClawLOW = 26;
+constexpr int vertClawHIGH = 32;
+constexpr int horiClawLOW = 33;
+constexpr int horiClawHIGH = 27;
+constexpr int carriageMotorPWM = 5;
+constexpr int carriageMotorDir = 10;
+constexpr int clawExtMotorPWM = 15;
+constexpr int clawExtMotorDir = 2;
+constexpr int rotaryEncoderPin = 4;
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -85,6 +86,9 @@ uint32_t MG996RPos = 0;
 
 // put function declarations here:
 
+int distToTape();
+void driveMotor(int motorPWM, int directionPin, int speed, int direction);
+void drive(int avgSpeedInput);
 /**
  * distToTape - calculates the distance to the tape based on the IR sensor readings
  * 
@@ -121,12 +125,14 @@ int distToTape() {
     return dist;
 }
 
-void drive(int avgSpeedInput) {
+/**
+ * drives the robot forward with PID control
+ * @param avgSpeedInput the average speed of the robot while driving
+ */
+void drive(const int avgSpeedInput) {
     last_distance=distance;
     distance = distToTape();
-    
 
-    
     if(last_distance != distance) {
         q=m;
         m=1;
@@ -146,9 +152,8 @@ void drive(int avgSpeedInput) {
     leftSpeed = min(leftSpeed,maxSpeed);
     rightSpeed = max(avgSpeedInput+ctrl,minSpeed);
     rightSpeed = min(rightSpeed,maxSpeed);
-    ledcWrite(leftPwmChannel,leftSpeed);
-    ledcWrite(rightPwmChannel,rightSpeed);
-
+    driveMotor(leftPwmChannel, dirOut1, leftSpeed, 1);
+    driveMotor(rightPwmChannel, dirOut2, rightSpeed, 1);
     leftVal = adc1_get_raw(ADC1_CHANNEL_4);
     rightVal = adc1_get_raw(ADC1_CHANNEL_5);
     
@@ -175,10 +180,8 @@ void drive(int avgSpeedInput) {
  * @avgSpeedInput the speed at which to drive backwards
  */
 void driveReverse(int avgSpeedInput) {
-  digitalWrite(dirOut1, 0);
-  digitalWrite(dirOut2, 0);
-  ledcWrite(leftPwmChannel, avgSpeedInput);
-  ledcWrite(rightPwmChannel, avgSpeedInput);
+  driveMotor(leftPwmChannel, dirOut1, avgSpeedInput, 0);
+  driveMotor(rightPwmChannel, dirOut2, avgSpeedInput, 0);
 }
 
 /**
@@ -189,6 +192,23 @@ void stopMotors() {
   ledcWrite(leftPwmChannel,0);
   ledcWrite(rightPwmChannel,0);
 }
+
+/**
+ * Drives a specific motor and a given speed in a given direction, as opposed to drive which drives both wheel motors
+ * @param motorPWM the PWM channel for the motor
+ * @param directionPin the direction pin for the motor
+ * @param direction the direction to drive, with 1 being right and 0 being left
+ * @param speed the speed to drive the motor, in range 0 - 4095
+ */
+void driveMotor(const int motorPWM, const int directionPin, const int speed, const int direction) {
+  digitalWrite(directionPin, direction);
+  ledcWrite(motorPWM, speed);
+}
+
+
+
+
+
 
 void home() {
   /**
@@ -269,7 +289,7 @@ void drive_task(void* parameters) {
 }
 
 // for communication with Pi, I was thinking the detect and grab tasks would bounce between each other 
-void grab_task(void* paramters) {
+void grab_task(void* parameters) {
 
 
   ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
@@ -365,6 +385,11 @@ void setup() {
   Serial2Pi.begin(9600,SERIAL_8N1, RX, TX);
   Serial2Pi.write("Hello from the ESP32!");
 
+  //initialize basic pin connections
+
+  // needs to be pull up for encoder to function properly
+  pinMode(rotaryEncoderPin, INPUT_PULLUP);
+
   // initialize adc channels for pwm signals to operate drive
   adc1_config_width(ADC_WIDTH_BIT_12);
 
@@ -383,6 +408,7 @@ void setup() {
 
   ledcSetup(clawExtPWMChannel,250,12);
   ledcAttachPin(clawExtMotorPWM,  clawExtPWMChannel);
+
   // attach pins for ISRs
 
   pinMode(startSwitch, INPUT_PULLUP);
