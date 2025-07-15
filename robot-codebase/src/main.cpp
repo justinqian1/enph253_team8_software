@@ -35,10 +35,18 @@ HardwareSerial Serial2Pi(2); // for UART 2
 #define SG90Pin 14
 #define DSPin 12
 #define MG996RPin 13
-#define basketSwitch 39
+#define basketSwitch 25
 #define RX 7 // I'm moving some pins around just for code simplicity but these can change later
 #define TX 8 // same as above
-#define startSwitch 32
+#define startSwitch 39
+#define vertClawLOW 26
+#define vertClawHIGH 32
+#define horiClawLOW 33
+#define horiClawHIGH 27
+#define carriageMotorPWM 5
+#define carriageMotorDir 10
+#define clawExtMotorPWM 15
+#define clawExtMotorDir 2
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -165,8 +173,8 @@ void drive(int avgSpeedInput) {
 void driveReverse(int avgSpeedInput) {
   digitalWrite(dirOut1, 0);
   digitalWrite(dirOut2, 0);
-  ledcWrite(leftPwmChannel,avgSpeedInput);
-  ledcWrite(rightPwmChannel,avgSpeedInput);
+  ledcWrite(leftPwmChannel, avgSpeedInput);
+  ledcWrite(rightPwmChannel, avgSpeedInput);
 }
 
 /**
@@ -192,6 +200,31 @@ void IRAM_ATTR startButtonPressedISR() {
   vTaskNotifyGiveFromISR(idle_handle, &hpw);
   portYIELD_FROM_ISR(&hpw);
 }
+
+void IRAM_ATTR vertClawLowPressedISR() {
+  BaseType_t hpw = pdFALSE; 
+  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  portYIELD_FROM_ISR(&hpw);
+}
+
+void IRAM_ATTR vertClawHighPressedISR() {
+  BaseType_t hpw = pdFALSE; 
+  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  portYIELD_FROM_ISR(&hpw);
+}
+
+void IRAM_ATTR horiClawLowPressedISR() {
+  BaseType_t hpw = pdFALSE; 
+  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  portYIELD_FROM_ISR(&hpw);
+}
+
+void IRAM_ATTR horiClawHHighPressedISR() {
+  BaseType_t hpw = pdFALSE; 
+  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  portYIELD_FROM_ISR(&hpw);
+}
+
 void home() {
   /**
    * Code for homing sequence to run on startup, including:
@@ -207,7 +240,7 @@ void home() {
   DS.write(DSPos);
   MG996R.write(MG996RPos);
 
-  // INCLUDE CODE FOR HOMING MOTORS
+  
   
 }
 // create tasks here --> main robot functions
@@ -219,6 +252,7 @@ void drive_task(void* parameters) {
 
   //this creates an infinite loop, but it will be interrupted by other actions
   for(;;) {
+
     drive(speed);
 
     if (millis() - startTime > 90000) {
@@ -229,8 +263,14 @@ void drive_task(void* parameters) {
   }
 }
 
+// for communication with Pi, I was thinking the detect and grab tasks would bounce between each other 
 void grab_task(void* paramters) {
+
+
+  ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+
   // grabbing code here, feel free to change parameters
+
 }
 
 void reverse_task(void* parameters) {
@@ -330,6 +370,7 @@ void setup() {
 
   ledcSetup(leftPwmChannel,250,12); //middle number: duty cycle resolution in hz
   ledcSetup(rightPwmChannel,250,12);
+  ledcSetup(carriageMotorPWM,250,12);
   ledcAttachPin(pwmOut1,leftPwmChannel);
   ledcAttachPin(pwmOut2,rightPwmChannel); //both motors controlled by same pwm channel
 
@@ -345,7 +386,7 @@ void setup() {
   xTaskCreate(
     drive_task, // function to be run
     "Driving", // description of task
-    1000, // bytes allocated to this stack
+    1000, // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
     NULL, // parameters, dependent on function
     1, // priority
     &drive_handle // task handle
@@ -356,7 +397,7 @@ void setup() {
     "Grabbing", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
-    3, // priority
+    2, // priority
     &grab_handle // task handle
   ); 
 
@@ -374,7 +415,7 @@ void setup() {
     "Raising Basket", // description of task
     1000, // bytes allocated to this stack
     NULL, // parameters, dependent on function
-    1, // priority
+    3, // priority
     &raise_basket_handle // task handle
   ); 
 
