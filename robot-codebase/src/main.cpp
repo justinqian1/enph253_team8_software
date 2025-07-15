@@ -19,37 +19,37 @@ TaskHandle_t idle_handle = NULL;
 
 HardwareSerial Serial2Pi(2); // for UART 2
 
-#define leftPwmChannel 0
-#define rightPwmChannel 1
-#define carriagePWMChannel 2
-#define clawExtPWMChannel 3
-#define pwmOut1 20 //outputs the pwm channel according to ledcAttachPin
-#define dirOut1 21
-#define pwmOut2 22
-#define dirOut2 19
-#define irSensorLeft 9
-#define irSensorRight 35
-#define thresholdL 1800
-#define thresholdR 1800
-#define maxSpeed 4000 //set a max pwm output
-#define minSpeed 0 //set a min pwm output
-#define speed 1600 //set an average speed
-#define SG90Pin 14
-#define DSPin 12
-#define MG996RPin 13
-#define basketSwitch 25
-#define RX 7 // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
-#define TX 8 // same as above
-#define startSwitch 39
-#define vertClawLOW 26
-#define vertClawHIGH 32
-#define horiClawLOW 33
-#define horiClawHIGH 27
-#define carriageMotorPWM 5
-#define carriageMotorDir 10
-#define clawExtMotorPWM 15
-#define clawExtMotorDir 2
-#define rotaryEncoder 4
+constexpr int leftPwmChannel 0
+constexpr int rightPwmChannel 1
+constexpr int carriagePWMChannel 2
+constexpr int clawExtPWMChannel 3
+constexpr int pwmOut1 20 //outputs the pwm channel according to ledcAttachPin
+constexpr int dirOut1 21
+constexpr int pwmOut2 22
+constexpr int dirOut2 19
+constexpr int irSensorLeft 9
+constexpr int irSensorRight 35
+constexpr int thresholdL 1800
+constexpr int thresholdR 1800
+constexpr int maxSpeed 4000 //set a max pwm output
+constexpr int minSpeed 0 //set a min pwm output
+constexpr int speed 1600 //set an average speed
+constexpr int SG90Pin 14
+constexpr int DSPin 12
+constexpr int MG996RPin 13
+constexpr int basketSwitch 25
+constexpr int RX 7 // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
+constexpr int TX 8 // same as above
+constexpr int startSwitch 39
+constexpr int vertClawLOW 26
+constexpr int vertClawHIGH 32
+constexpr int horiClawLOW 33
+constexpr int horiClawHIGH 27
+constexpr int carriageMotorPWM 5
+constexpr int carriageMotorDir 10
+constexpr int clawExtMotorPWM 15
+constexpr int clawExtMotorDir 2
+constexpr int rotaryEncoder 4
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -208,6 +208,7 @@ void home() {
 
 
 }
+
 // This is an ISR implementation of the button press interrupt for the reversing and basket raising mechanism
 // it sends a notification to the reverse_task to commence (after three presses)
 void IRAM_ATTR basketSwitchPressedISR() {
