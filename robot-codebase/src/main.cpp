@@ -35,12 +35,13 @@ constexpr int thresholdR = 1800;
 constexpr int maxSpeed = 4000; //set a max pwm output
 constexpr int minSpeed = 0; //set a min pwm output
 constexpr int speed = 1600; //set an average speed
+constexpr int homeSpeed =  600; //set a motor speed for the homing sequence
 constexpr int SG90Pin = 14;
 constexpr int DSPin = 12;
 constexpr int MG996RPin = 13;
 constexpr int basketSwitch = 25;
-constexpr int RX = 7; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
-constexpr int TX = 8; // same as above
+constexpr int RXPin = 7; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
+constexpr int TXPin = 8; // same as above
 constexpr int startSwitch = 39;
 constexpr int vertClawLOW = 26;
 constexpr int vertClawHIGH = 32;
@@ -51,6 +52,8 @@ constexpr int carriageMotorDir = 10;
 constexpr int clawExtMotorPWM = 15;
 constexpr int clawExtMotorDir = 2;
 constexpr int rotaryEncoderPin = 4;
+constexpr int rotaryMin = 0;
+
 // other pins: 27 = p_pot, 14 = d_pot
 
 int distance = 0; // right = positive
@@ -74,6 +77,7 @@ int lastOnTape = 0; // -1: left; 1: right
 unsigned long startTime = 0;
 uint32_t reverseMultiplier = 0.3; // percentage speed of average speed for driving backwards
 int rotaryCounter = 0;
+int rotaryMax = 0;
 
 Servo SG90;
 uint32_t SG90Pos = 0;
@@ -89,6 +93,8 @@ uint32_t MG996RPos = 0;
 int distToTape();
 void driveMotor(int motorPWM, int directionPin, int speed, int direction);
 void drive(int avgSpeedInput);
+void stopMotor(int motorPWM);
+void driveReverse(int avgSpeedInput);
 /**
  * distToTape - calculates the distance to the tape based on the IR sensor readings
  * 
@@ -179,16 +185,16 @@ void drive(const int avgSpeedInput) {
  * 
  * @avgSpeedInput the speed at which to drive backwards
  */
-void driveReverse(int avgSpeedInput) {
+void driveReverse(const int avgSpeedInput) {
   driveMotor(leftPwmChannel, dirOut1, avgSpeedInput, 0);
   driveMotor(rightPwmChannel, dirOut2, avgSpeedInput, 0);
 }
 
 /**
- * stopMotors - stops both motors entirely 
+ * stopDrive - stops both motors entirely 
  *              no guarantees about stopping motion of robot entirely (backlash, momentum, etc...)
  */
-void stopMotors() {
+void stopDrive() {
   ledcWrite(leftPwmChannel,0);
   ledcWrite(rightPwmChannel,0);
 }
@@ -205,18 +211,33 @@ void driveMotor(const int motorPWM, const int directionPin, const int speed, con
   ledcWrite(motorPWM, speed);
 }
 
+/**
+ * Stops a specific motor
+ * @param motorPWM the PWM channel for the motor
+ */
+void stopMotor(const int motorPWM) {
+  ledcWrite(motorPWM,0);
+}
 
-
-
-
-
+/**
+ * Stops all motors (generally for testing purposes)
+ */
+void stopAllMotors() {
+  ledcWrite(leftPwmChannel,0);
+  ledcWrite(rightPwmChannel,0);
+  ledcWrite(clawExtPWMChannel,0);
+  ledcWrite(carriagePWMChannel,0);
+}
+/**
+ * Runs the homing sequence for the robot
+ */
 void home() {
   /**
    * Code for homing sequence to run on startup, including:
    * Homing DC motors using limit switches (2 motors)
    * Setting all servo motor positions to 0
    */
-
+  uint32_t switchHit;
   SG90Pos = 0;
   DSPos = 0;
   MG996RPos = 0;
@@ -225,6 +246,34 @@ void home() {
   DS.write(DSPos);
   MG996R.write(MG996RPos);
 
+  //find limits of the claw
+  driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 0);
+  xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+  if (switchHit == 3) {
+    //set lower limit
+  } else if (switchHit == 4) {
+    //set higher limit
+  }
+
+  driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 1);
+  xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+  if (switchHit == 3) {
+    //set lower limit
+  } else if (switchHit == 4) {
+    //set higher limit
+  }
+  stopMotor(clawExtPWMChannel);
+
+
+  driveMotor(carriagePWMChannel, carriageMotorDir, homeSpeed, 0);
+  xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+  if (switchHit == 1) {
+    stopMotor(carriagePWMChannel);
+  } else if (switchHit == 2) {
+    driveMotor(carriagePWMChannel, carriageMotorDir, homeSpeed, 1);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    stopMotor(carriagePWMChannel);
+  }
 
 
 }
@@ -246,25 +295,25 @@ void IRAM_ATTR startButtonPressedISR() {
 
 void IRAM_ATTR vertClawLowPressedISR() {
   BaseType_t hpw = pdFALSE; 
-  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  xTaskNotifyFromISR(home_handle, 0x01, eSetBits, &hpw);
   portYIELD_FROM_ISR(&hpw);
 }
 
 void IRAM_ATTR vertClawHighPressedISR() {
   BaseType_t hpw = pdFALSE; 
-  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  xTaskNotifyFromISR(home_handle, 0x02, eSetBits, &hpw);
   portYIELD_FROM_ISR(&hpw);
 }
 
 void IRAM_ATTR horiClawLowPressedISR() {
   BaseType_t hpw = pdFALSE; 
-  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  xTaskNotifyFromISR(home_handle, 0x03, eSetBits, &hpw);
   portYIELD_FROM_ISR(&hpw);
 }
 
 void IRAM_ATTR horiClawHHighPressedISR() {
   BaseType_t hpw = pdFALSE; 
-  vTaskNotifyGiveFromISR(home_handle, &hpw);
+  xTaskNotifyFromISR(home_handle, 0x04, eSetBits, &hpw);
   portYIELD_FROM_ISR(&hpw);
 }
 
@@ -314,7 +363,7 @@ void reverse_task(void* parameters) {
     driveReverse(speed*reverseMultiplier);
     vTaskDelay(2000 / portTICK_PERIOD_MS);
     //stop motors for basket raise
-    stopMotors();
+    stopDrive();
 
     //signals to start basket raising code
     xTaskNotifyGive(&raise_basket_handle);
@@ -382,7 +431,7 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   //initialize UART connection to the Pi
-  Serial2Pi.begin(9600,SERIAL_8N1, RX, TX);
+  Serial2Pi.begin(9600,SERIAL_8N1, RXPin, TXPin);
   Serial2Pi.write("Hello from the ESP32!");
 
   //initialize basic pin connections
@@ -415,6 +464,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(startSwitch), startButtonPressedISR, RISING);
   pinMode(basketSwitch, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(basketSwitch), basketSwitchPressedISR, RISING);
+
 
   // create tasks associated with functions defined above 
   // priorities are temporary and TBD
