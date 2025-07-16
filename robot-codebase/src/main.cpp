@@ -21,33 +21,37 @@ TaskHandle_t idle_handle = nullptr;
 
 HardwareSerial Serial2Pi(2); // for UART 2
 
-//  ESP32 pins
+// PWM Channels
+
 constexpr int leftPwmChannel = 0;
 constexpr int rightPwmChannel = 1;
 constexpr int carriagePWMChannel = 2;
 constexpr int clawExtPWMChannel = 3;
+
+// ESP32 pins
 constexpr int pwmOut1 = 20; // outputs the pwm channel according to ledcAttachPin
 constexpr int dirOut1 = 21;
 constexpr int pwmOut2 = 22;
 constexpr int dirOut2 = 19;
-constexpr int irSensorLeft = 9;
+constexpr int irSensorLeft = 34;
 constexpr int irSensorRight = 35;
 constexpr int SG90Pin = 14;
 constexpr int DSPin = 12;
 constexpr int MG996RPin = 13;
 constexpr int basketSwitch = 25;
-constexpr int RXPin = 7; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
-constexpr int TXPin = 8; // same as above
+constexpr int RXPin = 9; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
+constexpr int TXPin = 10; // same as above
 constexpr int startSwitch = 39;
 constexpr int vertClawLOW = 26;
 constexpr int vertClawHIGH = 32;
 constexpr int horiClawLOW = 33;
 constexpr int horiClawHIGH = 27;
-constexpr int carriageMotorPWM = 5;
-constexpr int carriageMotorDir = 10;
-constexpr int clawExtMotorPWM = 15;
-constexpr int clawExtMotorDir = 2;
-constexpr int rotaryEncoderPin = 4;
+constexpr int carriageMotorPWM = 1;
+constexpr int carriageMotorDir = 3;
+constexpr int clawExtMotorPWM = 8;
+constexpr int clawExtMotorDir = 7;
+constexpr int rotaryEncoderPinA = 4;
+constexpr int rotaryEncoderPinB = 15;
 // other pins: 27 = p_pot, 14 = d_pot
 
 // constants
@@ -328,10 +332,10 @@ void home()
 void PCNTSetup()
 {
     pcnt_config_t pcnt_config = {
+        .unit = PCNT_UNIT,
         .pulse_gpio_num = rotaryEncoderPin, // Only pulse pin (A)
         .ctrl_gpio_num = PCNT_PIN_NOT_USED, // No direction pin
         .channel = PCNT_CHANNEL_0,
-        .unit = PCNT_UNIT,
         .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
         .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
         .lctrl_mode = PCNT_MODE_KEEP,
