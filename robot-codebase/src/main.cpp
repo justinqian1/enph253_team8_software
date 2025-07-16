@@ -4,6 +4,7 @@
 #include <ESP32Servo.h>
 #include "driver/gpio.h"
 #include <HardwareSerial.h>
+#include "driver/pcnt.h"
 
 // global variables and task handles
 
@@ -52,7 +53,7 @@ constexpr int carriageMotorDir = 10;
 constexpr int clawExtMotorPWM = 15;
 constexpr int clawExtMotorDir = 2;
 constexpr int rotaryEncoderPin = 4;
-constexpr int rotaryMin = 0;
+constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
 
 // other pins: 27 = p_pot, 14 = d_pot
 
@@ -77,7 +78,8 @@ int lastOnTape = 0; // -1: left; 1: right
 unsigned long startTime = 0;
 uint32_t reverseMultiplier = 0.3; // percentage speed of average speed for driving backwards
 int rotaryCounter = 0;
-int rotaryMax = 0;
+int16_t rotaryMax = 0;
+int16_t rotaryMin = 0;
 
 Servo SG90;
 uint32_t SG90Pos = 0;
@@ -95,6 +97,9 @@ void driveMotor(int motorPWM, int directionPin, int speed, int direction);
 void drive(int avgSpeedInput);
 void stopMotor(int motorPWM);
 void driveReverse(int avgSpeedInput);
+void stopDrive();
+void stopAllMotors();
+void home();
 /**
  * distToTape - calculates the distance to the tape based on the IR sensor readings
  * 
@@ -228,6 +233,7 @@ void stopAllMotors() {
   ledcWrite(clawExtPWMChannel,0);
   ledcWrite(carriagePWMChannel,0);
 }
+
 /**
  * Runs the homing sequence for the robot
  */
@@ -250,17 +256,17 @@ void home() {
   driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 0);
   xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
   if (switchHit == 3) {
-    //set lower limit
+    pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
   } else if (switchHit == 4) {
-    //set higher limit
+    pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
   }
 
   driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 1);
   xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
   if (switchHit == 3) {
-    //set lower limit
+    pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
   } else if (switchHit == 4) {
-    //set higher limit
+    pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
   }
   stopMotor(clawExtPWMChannel);
 
@@ -274,8 +280,31 @@ void home() {
     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
     stopMotor(carriagePWMChannel);
   }
+}
 
+void PCNTSetup() {
+  pcnt_config_t pcnt_config = {
+    .pulse_gpio_num = rotaryEncoderPin,   // Only pulse pin (A)
+    .ctrl_gpio_num = PCNT_PIN_NOT_USED, // No direction pin
+    .channel = PCNT_CHANNEL_0,
+    .unit = PCNT_UNIT,
+    .pos_mode = PCNT_COUNT_INC,        // Count up on positive edge
+    .neg_mode = PCNT_COUNT_DIS,        // Ignore falling edge (or count if needed)
+    .lctrl_mode = PCNT_MODE_KEEP,
+    .hctrl_mode = PCNT_MODE_KEEP,
+    .counter_h_lim = 10000,            // High limit (for overflow check)
+    .counter_l_lim = 0                 // Low limit (optional)
+  };
 
+  pcnt_unit_config(&pcnt_config);
+
+  // Optional: filter out noise shorter than 1000 clock cycles
+  pcnt_set_filter_value(PCNT_UNIT, 1000);
+  pcnt_filter_enable(PCNT_UNIT);
+
+  pcnt_counter_pause(PCNT_UNIT);
+  pcnt_counter_clear(PCNT_UNIT);
+  pcnt_counter_resume(PCNT_UNIT);
 }
 
 // This is an ISR implementation of the button press interrupt for the reversing and basket raising mechanism
@@ -465,7 +494,8 @@ void setup() {
   pinMode(basketSwitch, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(basketSwitch), basketSwitchPressedISR, RISING);
 
-
+  // starts the PCNT setup code
+  PCNTSetup();
   // create tasks associated with functions defined above 
   // priorities are temporary and TBD
   xTaskCreate(
