@@ -21,6 +21,7 @@ TaskHandle_t idle_handle = nullptr;
 
 HardwareSerial Serial2Pi(2); // for UART 2
 
+//  ESP32 pins
 constexpr int leftPwmChannel = 0;
 constexpr int rightPwmChannel = 1;
 constexpr int carriagePWMChannel = 2;
@@ -31,12 +32,6 @@ constexpr int pwmOut2 = 22;
 constexpr int dirOut2 = 19;
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
-constexpr int thresholdL = 1800;
-constexpr int thresholdR = 1800;
-constexpr int maxSpeed = 4000; //set a max pwm output
-constexpr int minSpeed = 0; //set a min pwm output
-constexpr int speed = 1600; //set an average speed
-constexpr int homeSpeed =  600; //set a motor speed for the homing sequence
 constexpr int SG90Pin = 14;
 constexpr int DSPin = 12;
 constexpr int MG996RPin = 13;
@@ -53,10 +48,20 @@ constexpr int carriageMotorDir = 10;
 constexpr int clawExtMotorPWM = 15;
 constexpr int clawExtMotorDir = 2;
 constexpr int rotaryEncoderPin = 4;
-constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
-
 // other pins: 27 = p_pot, 14 = d_pot
 
+// constants
+constexpr int thresholdL = 1800;
+constexpr int thresholdR = 1800;
+constexpr int maxSpeed = 4000; //set a max pwm output
+constexpr int minSpeed = 0; //set a min pwm output
+constexpr int speed = 1600; //set an average speed
+constexpr int homeSpeed =  600; //set a motor speed for the homing sequence
+
+// misc consexpr
+constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
+
+// PID vars
 int distance = 0; // right = positive
 int last_distance = 0;
 int kp=0;
@@ -75,12 +80,15 @@ int rightVal=0;
 int leftSpeed=0;
 int rightSpeed=0;
 int lastOnTape = 0; // -1: left; 1: right
+
+// other vars
 unsigned long startTime = 0;
 uint32_t reverseMultiplier = 0.3; // percentage speed of average speed for driving backwards
 int rotaryCounter = 0;
 int16_t rotaryMax = 0;
 int16_t rotaryMin = 0;
 
+// servos
 Servo SG90;
 uint32_t SG90Pos = 0;
 
@@ -90,8 +98,7 @@ uint32_t DSPos = 0;
 Servo MG996R;
 uint32_t MG996RPos = 0;
 
-// put function declarations here:
-
+// function declarations
 int distToTape();
 void driveMotor(int motorPWM, int directionPin, int speed, int direction);
 void drive(int avgSpeedInput);
@@ -100,6 +107,8 @@ void driveReverse(int avgSpeedInput);
 void stopDrive();
 void stopAllMotors();
 void home();
+void PCNTsetup();
+
 /**
  * distToTape - calculates the distance to the tape based on the IR sensor readings
  * 
@@ -346,9 +355,13 @@ void IRAM_ATTR horiClawHHighPressedISR() {
   portYIELD_FROM_ISR(&hpw);
 }
 
-// create tasks here --> main robot functions
+// freeRTOS tasks
 
-// this is a low priority task that will be interrupted by other actions
+/**
+ * this task operates the main driving system of the robot, including PID control. It also includes a hard-coded stop c
+ * condition if the time reaches 90 seconds, at which point it signals the full_turn task to execute at max priority.
+ * @param parameters no parameters for this task
+ */
 void drive_task(void* parameters) {
 
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -366,7 +379,11 @@ void drive_task(void* parameters) {
   }
 }
 
-// for communication with Pi, I was thinking the detect and grab tasks would bounce between each other 
+// for communication with Pi, I was thinking the detect and grab tasks would bounce between each other
+/**
+ * this task operates the grabbing system of the robot
+ * @param parameters no parameters for this task
+ */
 void grab_task(void* parameters) {
 
 
@@ -376,6 +393,11 @@ void grab_task(void* parameters) {
 
 }
 
+/**
+ * this task operates the reverse driving of the robot, limited to straight-line motion. This task also covers alignment
+ * with the zipline by reversing and then sending a signal to the raise_basket task.
+ * @param parameters no parameters for this task
+ */
 void reverse_task(void* parameters) {
   
   // waits for third switch press before intiating reverse + basket raise (first hit at the door, second when going up the ramp, final on the zipline)
@@ -399,18 +421,28 @@ void reverse_task(void* parameters) {
   }
 }
 
+/**
+ * this task operates the raising of the basket for the zipline. It suspends the drive task temporarily while raising
+ * the basket.
+ * @param parameters no parameters for this task
+ */
 void raise_basket_task(void* parameters) {
   
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-  for(;;) {
+  stopDrive();
   // raise basket by rotating SG90 by 90 degrees slowly (hence the delays)
-    while(MG996RPos < 90) {
+  // there used to be a for(;;) loop here but I didn't really see why there was one so I removed it.
+  while(MG996RPos < 90) {
       MG996R.write(++MG996RPos);
       vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
   }
 }
 
+/**
+ * this is a one-time task that activates the homing sequence, after which it puts the robot in idle mode. It also
+ * terminates itself upon completion.
+ * @param parameters no parameters for this task
+ */
 void home_task(void* parameters) {
   // homing sequence, to be run once at startup and then deleted
   home();
@@ -420,6 +452,12 @@ void home_task(void* parameters) {
   vTaskDelete(NULL);
 }
 
+/**
+ * this task operates a full 180 degree turn of the robot, ideally without losing the line. It is a safeguard for the
+ * case in which the 90-second limit is reached. It suspends all other tasks during its operation, and only resumes
+ * the drive task when completed.
+ * @param parameters no parameters for this task
+ */
 void full_turn_task(void* parameters) {
   // full 180 turn sequence here, for once 90 second hard limit reached
   ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
