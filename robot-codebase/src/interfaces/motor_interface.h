@@ -8,7 +8,7 @@
 class motor_interface
 {
     public:
-    virtual void drive(int speed, int direction);
+    virtual void driveMotor(int speed, int direction);
     virtual void driveForward(int speed);
     virtual void driveReverse(int speed);
     virtual void stop();
