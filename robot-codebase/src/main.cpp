@@ -268,6 +268,9 @@ void stopAllMotors()
     ledcWrite(carriagePWMChannel, 0);
 }
 
+/**
+ * rotates the claw
+ */
 void rotateClaw()
 {
 }
@@ -332,16 +335,16 @@ void home()
 void PCNTSetup()
 {
     pcnt_config_t pcnt_config = {
-        .unit = PCNT_UNIT,
-        .pulse_gpio_num = rotaryEncoderPin, // Only pulse pin (A)
-        .ctrl_gpio_num = PCNT_PIN_NOT_USED, // No direction pin
-        .channel = PCNT_CHANNEL_0,
-        .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
-        .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
+        .pulse_gpio_num = rotaryEncoderPinA, // Only pulse pin (A)
+        .ctrl_gpio_num = rotaryEncoderPinB, // Added direction pin B
         .lctrl_mode = PCNT_MODE_KEEP,
         .hctrl_mode = PCNT_MODE_KEEP,
+        .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
+        .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
         .counter_h_lim = 10000, // High limit (for overflow check)
-        .counter_l_lim = 0      // Low limit (optional)
+        .counter_l_lim = 0,      // Low limit (optional)
+        .unit = PCNT_UNIT,
+        .channel = PCNT_CHANNEL_0,
     };
 
     pcnt_unit_config(&pcnt_config);
@@ -575,7 +578,8 @@ void setup()
     // initialize basic pin connections
 
     // needs to be pull up for encoder to function properly
-    pinMode(rotaryEncoderPin, INPUT_PULLUP);
+    pinMode(rotaryEncoderPinA, INPUT_PULLUP);
+    pinMode(rotaryEncoderPinB, INPUT_PULLUP);
 
     // initialize adc channels for pwm signals to operate drive
     adc1_config_width(ADC_WIDTH_BIT_12);
