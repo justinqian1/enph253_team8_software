@@ -2,8 +2,11 @@
 #include <HardwareSerial.h>
 
 HardwareSerial MySerial(1);
-bool inMessage=0;
-int petsLeft=0;
+bool petDetected=0;
+float pet_x=0;
+float pet_y=0;
+float pet_w=0;
+float pet_h=0;
 
 void setup() {
     Serial.begin(115200);
@@ -13,19 +16,13 @@ void setup() {
 void loop() {
     if (MySerial.available()) {
         String line = MySerial.readStringUntil('\n');
-        if (line=="START") {
-            inMessage=1;
-            petsLeft=0;
-            Serial.printf("new image\n");
-        } else if (line=="END") {
-            inMessage=0;
-        } else if(inMessage && petsLeft==0) {
-            petsLeft=line.toInt();
-        } else if(inMessage && petsLeft > 0) {
-            float x, y, w, h;
-            sscanf(line.c_str(), "%f,%f,%f,%f", &x, &y, &w, &h);
-            Serial.printf("BBox: x=%.2f y=%.2f w=%.2f h=%.2f\n", x, y, w, h);
-            petsLeft--;
+        if (line.length()==1) {
+            petDetected=0;
+            Serial.printf("no pets\n");
+        } else {
+            petDetected=1;
+            sscanf(line.c_str(), "%f,%f,%f,%f", &pet_x, &pet_y, &pet_w, &pet_h);
+            Serial.printf("x=%.2f y=%.2f w=%.2f h=%.2f\n", pet_x, pet_y, pet_w, pet_h);
         }
     }
 }
