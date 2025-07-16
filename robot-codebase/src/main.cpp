@@ -104,12 +104,16 @@ int16_t rotaryMax = 0;
 int16_t rotaryMin = 0;
 
 // servos
+
+// for closing the claw
 Servo SG90;
 uint32_t SG90Pos = 0;
 
+// for lifting the basket
 Servo DS;
 uint32_t DSPos = 0;
 
+// for rotating claw
 Servo MG996R;
 uint32_t MG996RPos = 0;
 
@@ -121,7 +125,7 @@ void stopMotor(int motorPWM);
 void driveReverse(int avgSpeedInput);
 void stopDrive();
 void stopAllMotors();
-void rotateClaw();
+void rotateClaw(int pos);
 void home();
 void PCNTsetup();
 
@@ -269,10 +273,12 @@ void stopAllMotors()
 }
 
 /**
- * rotates the claw
+ * rotates the claw (attached to the DS servo) to a specific position
+ * @param pos the position, in degrees, to rotate to
  */
-void rotateClaw()
+void rotateClaw(int pos)
 {
+    DS.write(pos);
 }
 
 /**
@@ -285,6 +291,7 @@ void home()
      * Homing DC motors using limit switches (2 motors)
      * Setting all servo motor positions to 0
      */
+
     uint32_t switchHit;
     SG90Pos = 0;
     DSPos = 0;
@@ -332,6 +339,10 @@ void home()
     }
 }
 
+/**
+ * sets up the PCNT counter using the two rotaryEncoderPins, an overflow limit of 10000,
+ * and a filter time of  1000 clock cycles.
+ */
 void PCNTSetup()
 {
     pcnt_config_t pcnt_config = {
@@ -486,9 +497,9 @@ void raise_basket_task(void *parameters)
     stopDrive();
     // raise basket by rotating SG90 by 90 degrees slowly (hence the delays)
     // there used to be a for(;;) loop here but I didn't really see why there was one so I removed it.
-    while (MG996RPos < 90)
+    while (DSPos < 90)
     {
-        MG996R.write(++MG996RPos);
+        MG996R.write(++DSPos);
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
@@ -549,7 +560,6 @@ void home_claw_task(void *parameters)
 }
 void idle_task(void *parameters)
 {
-
     // initiate idling once homing is finished
 
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -577,7 +587,7 @@ void setup()
 
     // initialize basic pin connections
 
-    // needs to be pull up for encoder to function properly
+    // needs to be pull up for encoder to function properly (I think <-- TO BE TESTED)
     pinMode(rotaryEncoderPinA, INPUT_PULLUP);
     pinMode(rotaryEncoderPinB, INPUT_PULLUP);
 
@@ -681,7 +691,7 @@ void setup()
         "Idling",    // description of task
         1000,        // bytes allocated to this stack
         NULL,        // parameters, dependent on function
-        6,           // priority
+        5,           // priority
         &idle_handle // task handle
     );
 
