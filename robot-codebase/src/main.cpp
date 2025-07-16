@@ -471,10 +471,23 @@ void full_turn_task(void* parameters) {
   vTaskResume(&drive_handle);
 }
 
+/**
+ * this task handles detection of pets through serial communication with the Raspberry Pi 5. It signals the home_claw_task
+ * to update its position. It also signals when a pet is close enough to be picked up to operate the grab task.
+ * @param parameters no parameters for this task
+ */
 void detect_task(void* parameters) {
   // detection code for determining pet location
 }
 
+/**
+ * this task handles operating the servo attached to the rotating base to follow the nearest pet according to the Pi Cam.
+ * It is constantly updated by the detect_task and runs independently of the driving function.
+ * @param parameters no parameters for this task
+ */
+void home_claw_task(void* parameters) {
+  // code to turn camera to follow nearest pet
+}
 void idle_task(void* parameters) {
 
   // initiate idling once homing is finished
