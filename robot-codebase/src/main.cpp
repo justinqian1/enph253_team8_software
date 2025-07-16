@@ -60,7 +60,7 @@ constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // camera params
 constexpr int img_size = 320;
-constexpr float horizontal_fov = 62.2 //degrees
+constexpr float horizontal_fov = 62.2; //degrees
 
     // misc consexpr
     constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
