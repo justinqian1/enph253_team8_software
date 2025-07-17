@@ -6,6 +6,7 @@
 #include <HardwareSerial.h>
 #include "driver/pcnt.h"
 
+
 // global variables and task handles
 
 TaskHandle_t drive_handle = nullptr;
@@ -19,7 +20,7 @@ TaskHandle_t idle_handle = nullptr;
 
 // initialize serial port for Pi communication
 
-HardwareSerial Serial2Pi(2); // for UART 2
+HardwareSerial Serial2Pi(0); // for UART 2
 
 // PWM Channels
 
@@ -52,7 +53,6 @@ constexpr int clawExtMotorPWM =  8;
 constexpr int clawExtMotorDir = 7;
 constexpr int rotaryEncoderPinA = 2;
 constexpr int rotaryEncoderPinB = 15;
-// other pins: 27 = p_pot, 14 = d_pot
 
 // constants
 constexpr int thresholdL = 1800;
@@ -66,8 +66,8 @@ constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 constexpr int img_size = 320;
 constexpr float horizontal_fov = 62.2; //degrees
 
-    // misc consexpr
-    constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
+// misc consexpr
+constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
 
 // PID vars
 int distance = 0; // right = positive
@@ -95,6 +95,7 @@ float pet_x = 0;
 float pet_y = 0;
 float pet_w = 0;
 float pet_h = 0;
+float prev_pet_area = 0;
 
 // other vars
 unsigned long startTime = 0;
@@ -119,13 +120,14 @@ uint32_t MG996RPos = 0;
 
 // function declarations
 int distToTape();
+float angleToCenter(float pet_x_coord);
 void driveMotor(int motorPWM, int directionPin, int speed, int direction);
 void drive(int avgSpeedInput);
 void stopMotor(int motorPWM);
 void driveReverse(int avgSpeedInput);
 void stopDrive();
 void stopAllMotors();
-void rotateClaw(int pos);
+void rotateTurret(int pos);
 void home();
 void PCNTsetup();
 
@@ -137,8 +139,8 @@ void PCNTsetup();
 int distToTape()
 {
     int dist = 0;
-    leftOnTape = adc1_get_raw(ADC1_CHANNEL_4) > thresholdL;
-    rightOnTape = adc1_get_raw(ADC1_CHANNEL_5) > thresholdR;
+    leftOnTape = adc1_get_raw(ADC1_CHANNEL_6) > thresholdL; // adc1 ch6 = pin 34
+    rightOnTape = adc1_get_raw(ADC1_CHANNEL_7) > thresholdR; // adc1 ch7 = pin 35
     if (leftOnTape == 1 && rightOnTape == 1)
     {
         dist = 0;
@@ -166,6 +168,15 @@ int distToTape()
         dist = 5;
     }
     return dist;
+}
+
+/**
+ * calculates angle to center of pet. Note that the input image is flipped vertically.
+ * @param pet_x_coord center of pet's x coordinate
+ * @return angle between -31 (pet on very left of frame) to +31 (pet on very right of frame)
+ */
+float angleToCenter(float pet_x_coord) {
+    return ((float)img_size/2-pet_x_coord)*horizontal_fov;
 }
 
 /**
@@ -273,12 +284,12 @@ void stopAllMotors()
 }
 
 /**
- * rotates the claw (attached to the DS servo) to a specific position
- * @param pos the position, in degrees, to rotate to
+ * rotates the turret (attached to the MG996R servo) by a specific amount
+ * @param angle, the angle to rotate by
  */
-void rotateClaw(int pos)
+void rotateTurret(int angle) //NEEDS UPDATING
 {
-    DS.write(pos);
+    MG996R.write(MG996R.read() + angle); // i don't think read() works, we'll want our CustomServo.getPosition()
 }
 
 /**
@@ -547,6 +558,28 @@ void full_turn_task(void *parameters)
 void detect_task(void *parameters)
 {
     // detection code for determining pet location
+    while (1) {
+        if (Serial2Pi.available()) {
+            String line = Serial2Pi.readStringUntil('\n');
+            if (line.length()==1) {
+                petDetected=0;
+                //Serial.printf("no pets\n");
+            } else {
+                float rotate_const=0.5
+                petDetected=1;
+                sscanf(line.c_str(), "%f,%f,%f,%f", &pet_x, &pet_y, &pet_w, &pet_h);
+                if (abs(pet_x-img_size/2) < 20) { //tolerance of 20
+                    rotateTurret((int)angleToCenter(pet_x)*rotate_const)
+                }
+                float pet_area = pet_w*pet_h;
+                // CODE TO DECIDE WHETHER TO REDUCE SPEED
+                // CODE TO DECIDE WHETHER TO PICK UP
+                //Serial.printf("x=%.2f y=%.2f w=%.2f h=%.2f\n", pet_x, pet_y, pet_w, pet_h);
+                prev_pet_area=pet_area;
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }
 
 /**
