@@ -3,9 +3,11 @@
 //
 #include <Arduino.h>
 #include "CustomServo.h"
+
 /**
  * creates a CustomServo object with a default position set to 0
  * @param pin the pin to which this servo is assigned
+ * @param channel the PWM channel assigned to this servo
  */
 CustomServo::CustomServo(int pin, int channel) : servoPin(pin), pwmChannel(channel), servoPosition(0), periodHertz(50), minPulse(1000), maxPulse(2000) 
 {
@@ -15,6 +17,7 @@ CustomServo::CustomServo(int pin, int channel) : servoPin(pin), pwmChannel(chann
 /**
  * creates a CustomServo object with a starting position
  * @param pin the pin to which this servo is assigned
+ * @param channel the  pwm channel assigned to this servo
  * @param position the initial position of this servo
  */
 CustomServo::CustomServo(int pin, int channel, int position) : servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(50), minPulse(1000), maxPulse(2000) {
@@ -22,11 +25,27 @@ CustomServo::CustomServo(int pin, int channel, int position) : servoPin(pin), pw
     ledcAttachPin(servoPin, pwmChannel);
 }
 
+/**
+ * creates a CustomServo object with a variety of parameters
+ * @param pin the pin to which this servo is assigned
+ * @param channel the PWM channel assigned to this servo
+ * @param position the initial position of this servo
+ * @param hertz the period used for this servo
+ */
 CustomServo::CustomServo(int pin, int channel, int position, int hertz) : servoPin(pin), pwmChannel(channel), servoPosition(position),  periodHertz(hertz), minPulse(1000), maxPulse(2000) {
     ledcSetup(pwmChannel, periodHertz, 2000);
     ledcAttachPin(servoPin, pwmChannel);
 }
 
+/**
+ * creates a CustomServo object with a wider variety of parameters
+ * @param pin the pin to which this servo is assigned
+ * @param channel the PWM channel assigned to this servo
+ * @param position the initial position of this servo
+ * @param hertz the period used for this servo
+ * @param min the minimum pulse length in microseconds
+ * @param max the maximum pulse length in microseconds
+ */
 CustomServo::CustomServo(int pin, int channel, int position, int hertz, unsigned long min,  unsigned long max) : servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(hertz), minPulse(min), maxPulse(max) {
     ledcSetup(pwmChannel, periodHertz, 2000);
     ledcAttachPin(servoPin, pwmChannel);
@@ -49,7 +68,7 @@ int CustomServo::getPin() { return servoPin; }
  */
 void CustomServo::setAngle(int position)
 {
-    
+    ledcWrite(pwmChannel, dutyCycle(pulseLength(position))*4095);
     servoPosition = position;
 }
 
@@ -66,31 +85,37 @@ void CustomServo::setAngle(int position, int time)
     {
         while (servoPosition < position)
         {
-            servo.write(++servoPosition);
+            setAngle(++servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     } else if (servoPosition > position)
     {
         while (servoPosition > position)
         {
-            servo.write(--servoPosition);
+           setAngle(++servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     }
-
-    //PRIVATE FUNCTIONS
-    /**
-     * 
-     */
-    int pulseLength(int pos) {
-        return (int) (maxPulse - minPulse) * pos / 180;
-    }
-
-    /**
-     * 
-     */
-    int dutyCycle(int pulseLength) {
-        double period = (1 / (double) periodHertz) * 10^6;
-        return pulseLength / period;
-    }
 }
+
+//PRIVATE FUNCTIONS
+
+/**
+ * Private function that calculate the length of a pulse required to get to a certain position, in microseconds
+ * @param pos the position to calculate the pulse for
+ * @return the length of the pulse, in microseconds
+ */
+int CustomServo::pulseLength(int pos) {
+    return (maxPulse - minPulse) * pos / 180;
+}
+
+/**
+ * Private function that calculates the duty cycle required to make the PWM signal produce a certain pulse length
+ * @param length the length of the pulse to produce
+ * @return a double percentage that represents the % dutycycle
+ */
+double CustomServo::dutyCycle(int length) {
+    double period = 1 / static_cast<double>(periodHertz) * 1000;
+    return (length) / (double)period;
+}
+

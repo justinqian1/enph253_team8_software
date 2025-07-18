@@ -29,7 +29,7 @@ class CustomServo : public servo_interface
     unsigned long minPulse;
     unsigned long maxPulse;
     int pulseLength(int pos);
-    int dutyCycle(int pulseLength);
+    int dutyCycle(int length);
 
 };
 #endif //SERVO_H
