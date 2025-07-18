@@ -615,8 +615,13 @@ void detect_task(void *parameters)
                     } else {
                         // not close enough - update speed
                         int tempSpeedCeiling = (int)(petArea*-0.2)+1900; // arbitrary function for now
+                        int currentSpeed = speed;
                         tempSpeedCeiling=max(tempSpeedCeiling,0); // make sure it's positive
+<<<<<<< HEAD
                         speed=min((int)speed,tempSpeedCeiling);
+=======
+                        speed=min(currentSpeed,tempSpeedCeiling);
+>>>>>>> feeee3d1de11932487184e6dd37bbe012defd6da
                     }
                 }
                 //Serial.printf("x=%.2f y=%.2f w=%.2f h=%.2f\n", pet_x, pet_y, pet_w, pet_h);
