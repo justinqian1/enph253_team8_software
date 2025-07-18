@@ -1,32 +1,36 @@
 //
 // Created by bram on 16/07/25.
 //
-
+#include <Arduino.h>
 #include "CustomServo.h"
-
 /**
  * creates a CustomServo object with a default position set to 0
  * @param pin the pin to which this servo is assigned
  */
-CustomServo::CustomServo(int pin) : servoPin(pin), servoPosition(0)
+CustomServo::CustomServo(int pin, int channel) : servoPin(pin), pwmChannel(channel), servoPosition(0), periodHertz(50), minPulse(1000), maxPulse(2000) 
 {
-    servo.setPeriodHertz(50);
-    servo.attach(servoPin);
-    servo.write(0);
+    ledcSetup(pwmChannel, 50, 2000);
+    ledcAttachPin(servoPin, pwmChannel);
 }
-
 /**
  * creates a CustomServo object with a starting position
  * @param pin the pin to which this servo is assigned
  * @param position the initial position of this servo
  */
-CustomServo::CustomServo(int pin, int position) : servoPin(pin), servoPosition(position)
-{
-    servo.setPeriodHertz(50);
-    servo.attach(servoPin);
-    servo.write(servoPosition);
+CustomServo::CustomServo(int pin, int channel, int position) : servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(50), minPulse(1000), maxPulse(2000) {
+    ledcSetup(pwmChannel, 50, 2000);
+    ledcAttachPin(servoPin, pwmChannel);
 }
 
+CustomServo::CustomServo(int pin, int channel, int position, int hertz) : servoPin(pin), pwmChannel(channel), servoPosition(position),  periodHertz(hertz), minPulse(1000), maxPulse(2000) {
+    ledcSetup(pwmChannel, periodHertz, 2000);
+    ledcAttachPin(servoPin, pwmChannel);
+}
+
+CustomServo::CustomServo(int pin, int channel, int position, int hertz, unsigned long min,  unsigned long max) : servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(hertz), minPulse(min), maxPulse(max) {
+    ledcSetup(pwmChannel, periodHertz, 2000);
+    ledcAttachPin(servoPin, pwmChannel);
+}
 /**
  * returns the current position of the servo
  * @return the current position of the servo
@@ -45,7 +49,7 @@ int CustomServo::getPin() { return servoPin; }
  */
 void CustomServo::setAngle(int position)
 {
-    servo.write(position);
+    
     servoPosition = position;
 }
 
@@ -72,5 +76,21 @@ void CustomServo::setAngle(int position, int time)
             servo.write(--servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
+    }
+
+    //PRIVATE FUNCTIONS
+    /**
+     * 
+     */
+    int pulseLength(int pos) {
+        return (int) (maxPulse - minPulse) * pos / 180;
+    }
+
+    /**
+     * 
+     */
+    int dutyCycle(int pulseLength) {
+        double period = (1 / (double) periodHertz) * 10^6;
+        return pulseLength / period;
     }
 }
