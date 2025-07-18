@@ -6,6 +6,7 @@
   <component name="BackendCodeEditorMiscSettings">
     <option name="/Default/Environment/Hierarchy/GeneratedFilesCacheKey/Timestamp/@EntryValue" value="6" type="long" />
     <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/LiveTemplatesHousekeeping/HotspotSessionHintIsShown/@EntryValue" value="true" type="bool" />
     <option name="/Default/Housekeeping/OptionsDialog/SelectedPageId/@EntryValue" value="CppFormatterOtherPage" type="string" />
   </component>
   <component name="CMakeProjectFlavorService">
@@ -127,7 +128,7 @@
       <workItem from="1752602435162" duration="907000" />
       <workItem from="1752603575910" duration="931000" />
       <workItem from="1752605804827" duration="6439000" />
-      <workItem from="1752615343714" duration="28480000" />
+      <workItem from="1752615343714" duration="34170000" />
     </task>
     <servers />
   </component>

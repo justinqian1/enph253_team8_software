@@ -594,13 +594,13 @@ void detect_task(void *parameters)
                 //Serial.printf("no pets\n");
             } else {
                 // pet in visual range
-                float rotate_const=0.5
+                float rotate_const=0.5;
                 petDetected=1;
                 sscanf(line.c_str(), "%f,%f,%f,%f", &petX, &petY, &petW, &petH);
 
                 //rotate turret
                 if (abs(petX-img_size/2) > 20) { //tolerance of 20; center of pet in pixels 140-180 is good enough
-                    rotateTurret((int)angleToCenter(petX)*rotate_const)
+                    rotateTurret((int)angleToCenter(petX)*rotate_const);
                 }
 
                 // slow down robot/initiate pick up sequence
@@ -616,7 +616,7 @@ void detect_task(void *parameters)
                         // not close enough - update speed
                         int tempSpeedCeiling = (int)(petArea*-0.2)+1900; // arbitrary function for now
                         tempSpeedCeiling=max(tempSpeedCeiling,0); // make sure it's positive
-                        speed=min(speed,tempSpeedCeiling);
+                        speed=min((int)speed,tempSpeedCeiling);
                     }
                 }
                 //Serial.printf("x=%.2f y=%.2f w=%.2f h=%.2f\n", pet_x, pet_y, pet_w, pet_h);

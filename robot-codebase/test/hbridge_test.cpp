@@ -20,7 +20,7 @@ constexpr int rightPwmChannel = 1;
 constexpr unsigned long deadTime = 5;
 constexpr int testSpeed1 = 2000;
 constexpr int testSpeed2 = 4095;
-constexpr int switchTime = 2000;
+constexpr int switchTime = 4000;
 // variables
 int currentDirection = 0;
 int currentSpeed = 9;
@@ -37,14 +37,9 @@ void driveMotors(int speed, int direction)
 {
     if (direction == currentDirection)
     {
-        if (speed == currentSpeed)
-        {
-            // do nothing
-        } else
-        {
-            ledcWrite(leftPwmChannel, speed);
-            ledcWrite(rightPwmChannel, speed);
-        }
+        ledcWrite(leftPwmChannel, speed);
+        ledcWrite(rightPwmChannel, speed);
+
     } else
     {
         ledcWrite(leftPwmChannel, 0);
@@ -76,11 +71,19 @@ void drive_task (void * parameters){
         driveDirection = (driveDirection == 0) ? 1 : 0;
 
         driveSpeed = (driveSpeed == testSpeed1) ? testSpeed2 : testSpeed1;
+        Serial.println("Switching directions!");
     }
 }
 
 void setup()
 {
+    Serial.begin(115200);
+    adc1_config_width(ADC_WIDTH_BIT_12);
+
+    adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12); // ir sensor inputs (pin 32)
+    adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_12); // pin 33
+    adc2_config_channel_atten(ADC2_CHANNEL_7, ADC_ATTEN_DB_12); // pin 27 = p_pot (to be removed later)
+    adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12); // pin 14 = d_pot
     //intialize all states as low to avoid shoot through (direction pins don't matter to much but it's just in case)
     digitalWrite(dirOut1, LOW);
     digitalWrite(dirOut2, LOW);
@@ -90,16 +93,15 @@ void setup()
     ledcSetup(leftPwmChannel, 250, 12); // middle number: duty cycle resolution in hz
     ledcSetup(rightPwmChannel, 250, 12);
     ledcAttachPin(pwmOut1, leftPwmChannel);
-    ledcAttachPin(pwmOut2, rightPwmChannel); // both motors controlled by same pwm channel
-    ledcWrite(leftPwmChannel,0);
-    ledcWrite(rightPwmChannel,0);
+    ledcAttachPin(pwmOut2, rightPwmChannel);
+    ledcWrite(leftPwmChannel,2000);
+    ledcWrite(rightPwmChannel,2000);
 
     // setup pins
-    pinMode(pwmOut1, OUTPUT);
-    pinMode(pwmOut2, OUTPUT);
     pinMode(dirOut1, OUTPUT);
     pinMode(dirOut2, OUTPUT);
 
+    Serial.println("Setup Complete!!");
     xTaskCreate(
         drive_task,
         "Driving",
