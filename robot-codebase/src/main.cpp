@@ -59,8 +59,9 @@ constexpr int thresholdL = 1800;
 constexpr int thresholdR = 1800;
 constexpr int maxSpeed = 4000; // set a max pwm output
 constexpr int minSpeed = 0;    // set a min pwm output
-constexpr int speed = 1600;    // set an average speed
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
+constexpr int angleThreshold = 75; // angle at which to initiate pick up sequence
+constexpr int angleForward = 90;
 
 // camera params
 constexpr int img_size = 320;
@@ -68,6 +69,9 @@ constexpr float horizontal_fov = 62.2; //degrees
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
+
+// changing vars
+volatile int speed = 1600;    // average speed
 
 // PID vars
 int distance = 0; // right = positive
@@ -91,11 +95,10 @@ int lastOnTape = 0; // -1: left; 1: right
 
 // pet location vars
 bool petDetected = 0;
-float pet_x = 0;
-float pet_y = 0;
-float pet_w = 0;
-float pet_h = 0;
-float prev_pet_area = 0;
+float petX = 0;
+float petY = 0;
+float petW = 0;
+float petH = 0;
 
 // other vars
 unsigned long startTime = 0;
@@ -128,6 +131,7 @@ void driveReverse(int avgSpeedInput);
 void stopDrive();
 void stopAllMotors();
 void rotateTurret(int pos);
+void pickUpPet();
 void home();
 void PCNTsetup();
 
@@ -176,7 +180,7 @@ int distToTape()
  * @return angle between -31 (pet on very left of frame) to +31 (pet on very right of frame)
  */
 float angleToCenter(float pet_x_coord) {
-    return ((float)img_size/2-pet_x_coord)*horizontal_fov;
+    return (pet_x_coord-(float)img_size/2)*horizontal_fov;
 }
 
 /**
@@ -289,7 +293,30 @@ void stopAllMotors()
  */
 void rotateTurret(int angle) //NEEDS UPDATING
 {
-    MG996R.write(MG996R.read() + angle); // i don't think read() works, we'll want our CustomServo.getPosition()
+    int newAngle=MG996R.read() + angle;
+    newAngle=min(newAngle,180);
+    newAngle=max(newAngle,0);
+    MG996R.write(newAngle);
+}
+
+/**
+ * picks up pet
+ */
+void pickUpPet() {
+    /*
+    line up claw one last time
+    extend claw
+    receive input from hall effect
+    close claw
+    lift claw if not already lifted
+    rotate turret
+    retract claw
+    open claw
+    pause
+    extend claw
+    rotate claw/lower claw depending on next pickup location
+    */
+    sleep(3);
 }
 
 /**
@@ -562,20 +589,37 @@ void detect_task(void *parameters)
         if (Serial2Pi.available()) {
             String line = Serial2Pi.readStringUntil('\n');
             if (line.length()==1) {
+                // no pets; continue as normal
                 petDetected=0;
                 //Serial.printf("no pets\n");
             } else {
+                // pet in visual range
                 float rotate_const=0.5
                 petDetected=1;
-                sscanf(line.c_str(), "%f,%f,%f,%f", &pet_x, &pet_y, &pet_w, &pet_h);
-                if (abs(pet_x-img_size/2) < 20) { //tolerance of 20
-                    rotateTurret((int)angleToCenter(pet_x)*rotate_const)
+                sscanf(line.c_str(), "%f,%f,%f,%f", &petX, &petY, &petW, &petH);
+
+                //rotate turret
+                if (abs(petX-img_size/2) > 20) { //tolerance of 20; center of pet in pixels 140-180 is good enough
+                    rotateTurret((int)angleToCenter(petX)*rotate_const)
                 }
-                float pet_area = pet_w*pet_h;
-                // CODE TO DECIDE WHETHER TO REDUCE SPEED
-                // CODE TO DECIDE WHETHER TO PICK UP
+
+                // slow down robot/initiate pick up sequence
+                float petArea = petW*petH;
+                if (petArea > 1500) { //within ~2ft of pet
+                    int currentAngle = MG996R.read();
+                    if (currentAngle < angleForward - angleThreshold || currentAngle > angleForward + angleThreshold) {
+                        // arm is at nearly 90 degree angle -> initiate pick up
+                        vTaskSuspendAll();
+                        pickUpPet();      
+                        xTaskResumeAll();                  
+                    } else {
+                        // not close enough - update speed
+                        int tempSpeedCeiling = (int)(petArea*-0.2)+1900; // arbitrary function for now
+                        tempSpeedCeiling=max(tempSpeedCeiling,0); // make sure it's positive
+                        speed=min(speed,tempSpeedCeiling);
+                    }
+                }
                 //Serial.printf("x=%.2f y=%.2f w=%.2f h=%.2f\n", pet_x, pet_y, pet_w, pet_h);
-                prev_pet_area=pet_area;
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10));
