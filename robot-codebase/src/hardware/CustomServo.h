@@ -5,13 +5,17 @@
 #ifndef SERVO_H
 #define SERVO_H
 #include "interfaces/servo_interface.h"
-#include "ESP32Servo.h"
+#include "driver/ledc.h"
+#include "driver/adc.h"
+#include <Arduino.h>
 
 class CustomServo : public servo_interface
 {
     public:
-    explicit CustomServo(int pin);
-    explicit CustomServo(int pin, int position);
+    explicit CustomServo(int pin, int channel);
+    explicit CustomServo(int pin, int channel, int position);
+    explicit CustomServo(int pin, int channel, int position, int period);
+    explicit CustomServo(int pin, int channel, int position, int period, unsigned long min, unsigned long max); 
     int getPin();
     int getPosition();
     void setAngle(int angle) override;
@@ -20,6 +24,12 @@ class CustomServo : public servo_interface
     private:
     int servoPin;
     int servoPosition;
-    Servo servo;
+    int periodHertz;
+    int pwmChannel;
+    unsigned long minPulse;
+    unsigned long maxPulse;
+    int pulseLength(int pos);
+    int dutyCycle(int pulseLength);
+
 };
 #endif //SERVO_H
