@@ -5,10 +5,11 @@
 #include <Arduino.h>
 #include "driver/ledc.h"
 #include "driver/adc.h"
+#include "hardware/CustomServo.h"
 
 // pins numbers
 constexpr int pwmOut1 = 20;
-constexpr int dirOut1 = 21;
+constexpr int dirOut1 = 27;
 constexpr int pwmOut2 = 22;
 constexpr int dirOut2 = 19;
 
@@ -23,11 +24,19 @@ constexpr int testSpeed2 = 4095;
 constexpr int switchTime = 4000;
 // variables
 int currentDirection = 0;
-int currentSpeed = 9;
+int currentSpeed = 0;
 
 // task handles
-TaskHandle_t drive_task_handle = NULL;
+TaskHandle_t drive_test_task_handle = NULL;
+TaskHandle_t servo_test_task_handle = NULL;
 
+// servos
+constexpr int servoPin = 21;
+constexpr int pwmChannel = 3;
+CustomServo testServo(servoPin, pwmChannel, 180);
+void test_set_angle(int pos) {
+    testServo.setAngle(pos);
+}
 /**
  * drives the motors in a specified direction and a given speed, allotting dead time to prevent shoot through
  * @param speed the speed at which to drive the motors from 0 (min) to 4095 (max)
@@ -57,7 +66,7 @@ void driveMotors(int speed, int direction)
  * this task endlessly drives the motors, switching between two speeds and directions
  * @param parameters no parameters
  */
-void drive_task (void * parameters){
+void drive_test_task (void * parameters){
     int driveSpeed = testSpeed1;
     int driveDirection = 0;
     while (1)
@@ -75,9 +84,19 @@ void drive_task (void * parameters){
     }
 }
 
-void setup()
+void servo_test_task (void * parameters) {
+    while (1) {
+        test_set_angle(0);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        test_set_angle(180);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+    }
+}
+void runSetup()
 {
     Serial.begin(115200);
+    while(!Serial);
+    Serial.println("TESTING");
     adc1_config_width(ADC_WIDTH_BIT_12);
 
     adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12); // ir sensor inputs (pin 32)
@@ -102,17 +121,22 @@ void setup()
     pinMode(dirOut2, OUTPUT);
 
     Serial.println("Setup Complete!!");
+    /*
     xTaskCreate(
-        drive_task,
+        drive_test_task,
         "Driving",
         2000,
         nullptr,
+        0,
+        &drive_test_task_handle
+    );*/
+    xTaskCreate(
+        servo_test_task,
+        "Servo Rotating",
+        2000,
+        nullptr,
         1,
-        &drive_task_handle
+        &servo_test_task_handle
     );
 }
 
-void loop()
-{
-// nothing to see here
-}

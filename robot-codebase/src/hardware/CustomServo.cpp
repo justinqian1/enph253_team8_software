@@ -11,7 +11,7 @@
  */
 CustomServo::CustomServo(int pin, int channel) : servoPin(pin), pwmChannel(channel), servoPosition(0), periodHertz(50), minPulse(1000), maxPulse(2000) 
 {
-    ledcSetup(pwmChannel, 50, 2000);
+    ledcSetup(pwmChannel, 50, 16);
     ledcAttachPin(servoPin, pwmChannel);
 }
 /**
@@ -21,7 +21,7 @@ CustomServo::CustomServo(int pin, int channel) : servoPin(pin), pwmChannel(chann
  * @param position the initial position of this servo
  */
 CustomServo::CustomServo(int pin, int channel, int position) : servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(50), minPulse(1000), maxPulse(2000) {
-    ledcSetup(pwmChannel, 50, 2000);
+    ledcSetup(pwmChannel, 50, 16);
     ledcAttachPin(servoPin, pwmChannel);
 }
 
@@ -33,7 +33,7 @@ CustomServo::CustomServo(int pin, int channel, int position) : servoPin(pin), pw
  * @param hertz the period used for this servo
  */
 CustomServo::CustomServo(int pin, int channel, int position, int hertz) : servoPin(pin), pwmChannel(channel), servoPosition(position),  periodHertz(hertz), minPulse(1000), maxPulse(2000) {
-    ledcSetup(pwmChannel, periodHertz, 2000);
+    ledcSetup(pwmChannel, periodHertz, 16);
     ledcAttachPin(servoPin, pwmChannel);
 }
 
@@ -47,7 +47,7 @@ CustomServo::CustomServo(int pin, int channel, int position, int hertz) : servoP
  * @param max the maximum pulse length in microseconds
  */
 CustomServo::CustomServo(int pin, int channel, int position, int hertz, unsigned long min,  unsigned long max) : servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(hertz), minPulse(min), maxPulse(max) {
-    ledcSetup(pwmChannel, periodHertz, 2000);
+    ledcSetup(pwmChannel, periodHertz, 16);
     ledcAttachPin(servoPin, pwmChannel);
 }
 /**
@@ -68,7 +68,7 @@ int CustomServo::getPin() { return servoPin; }
  */
 void CustomServo::setAngle(int position)
 {
-    ledcWrite(pwmChannel, dutyCycle(pulseLength(position))*4095);
+    ledcWrite(pwmChannel, dutyCycle(pulseLength(position))*65535);
     servoPosition = position;
 }
 
@@ -92,7 +92,7 @@ void CustomServo::setAngle(int position, int time)
     {
         while (servoPosition > position)
         {
-           setAngle(++servoPosition);
+           setAngle(--servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     }
@@ -106,7 +106,7 @@ void CustomServo::setAngle(int position, int time)
  * @return the length of the pulse, in microseconds
  */
 int CustomServo::pulseLength(int pos) {
-    return (maxPulse - minPulse) * pos / 180;
+    return (maxPulse - minPulse) * pos / 180 + minPulse;
 }
 
 /**
@@ -115,7 +115,7 @@ int CustomServo::pulseLength(int pos) {
  * @return a double percentage that represents the % dutycycle
  */
 double CustomServo::dutyCycle(int length) {
-    double period = 1 / static_cast<double>(periodHertz) * 1000;
+    double period = 1e6 / static_cast<double>(periodHertz);
     return (length) / (double)period;
 }
 
