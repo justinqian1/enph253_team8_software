@@ -86,7 +86,7 @@ void drive_test_task (void * parameters){
 
 void servo_test_task (void * parameters) {
     while (1) {
-        test_set_angle(90);
+        test_set_angle( 90);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
         test_set_angle(120);
         vTaskDelay(2000 / portTICK_PERIOD_MS);

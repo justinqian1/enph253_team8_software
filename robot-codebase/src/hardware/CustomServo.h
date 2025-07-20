@@ -21,15 +21,15 @@ class CustomServo : public servo_interface
     void setAngle(int angle) override;
     void setAngle(int angle, int time) override;
 
-    private:
+    protected:
     int servoPin;
     int servoPosition;
     int periodHertz;
     int pwmChannel;
+    static constexpr int maxDuty = (1 << 16) - 1;
     unsigned long minPulse;
     unsigned long maxPulse;
     int pulseLength(int pos);
     double dutyCycle(int length);
-
 };
 #endif //SERVO_H

@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include "CustomServo.h"
 
+
 /**
  * creates a CustomServo object with a default position set to 0
  * @param pin the pin to which this servo is assigned
@@ -68,8 +69,10 @@ int CustomServo::getPin() { return this->servoPin; }
  */
 void CustomServo::setAngle(int position)
 {
-    int duty = map(position, 0, 180, this->minPulse, this->maxPulse);
-    ledcWrite(this->pwmChannel, dutyCycle(duty)*65535);
+    position = constrain(position, 0, 180);
+    int pulse_us = pulseLength(position);
+    uint32_t duty = dutyCycle(pulse_us)*maxDuty;
+    ledcWrite(this->pwmChannel, duty);
     this->servoPosition = position;
 }
 
@@ -107,13 +110,13 @@ void CustomServo::setAngle(int position, int time)
  * @return the length of the pulse, in microseconds
  */
 int CustomServo::pulseLength(int pos) {
-    return (this->maxPulse - this->minPulse) * pos / 180 + this->minPulse;
+    return map(pos, 0, 180, this->minPulse, this->maxPulse);
 }
 
 /**
  * Private function that calculates the duty cycle required to make the PWM signal produce a certain pulse length
  * @param length the length of the pulse to produce
- * @return a double percentage that represents the % dutycycle
+ * @return a double percentage that represents the % duty cycle
  */
 double CustomServo::dutyCycle(int length) {
     double period = 1e6 / static_cast<double>(this->periodHertz);
