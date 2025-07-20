@@ -86,14 +86,15 @@ void drive_test_task (void * parameters){
 
 void servo_test_task (void * parameters) {
     while (1) {
-        test_set_angle(0);
+        test_set_angle(90);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
-        test_set_angle(180);
+        test_set_angle(120);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
 }
-void runSetup()
+void presetup()
 {
+    /*
     Serial.begin(115200);
     while(!Serial);
     Serial.println("TESTING");
@@ -122,6 +123,7 @@ void runSetup()
 
     Serial.println("Setup Complete!!");
     /*
+    
     xTaskCreate(
         drive_test_task,
         "Driving",

@@ -68,7 +68,8 @@ int CustomServo::getPin() { return servoPin; }
  */
 void CustomServo::setAngle(int position)
 {
-    ledcWrite(pwmChannel, dutyCycle(pulseLength(position))*65535);
+    int duty = map(position, 0, 180, minPulse, maxPulse);
+    ledcWrite(CustomServo::pwmChannel, dutyCycle(duty)*65535);
     servoPosition = position;
 }
 
