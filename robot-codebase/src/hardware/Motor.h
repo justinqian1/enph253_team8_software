@@ -17,6 +17,7 @@ class Motor : public motor_interface
     void stopMotor();
     void driveForward(int speed) override;
     void driveReverse(int speed) override;
+    void drivePID(int avgSpeed);
     int getMotorPWMPin();
     int getMotorDirectionPin();
 

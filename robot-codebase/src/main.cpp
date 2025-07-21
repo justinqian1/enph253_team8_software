@@ -44,7 +44,6 @@ int rightVal = 0;
 int leftSpeed = 0;
 int rightSpeed = 0;
 int lastOnTape = 0; // -1: left; 1: right
-
 // pet location vars
 bool petDetected = 0;
 float petX = 0;
