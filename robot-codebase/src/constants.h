@@ -5,7 +5,6 @@
 #ifndef PINASSIGNMENTS_H
 #define PINASSIGNMENTS_H
 
-
 // PWM Channels
 
 constexpr int leftPwmChannel = 0;
@@ -44,12 +43,19 @@ constexpr int thresholdR = 1800;
 constexpr int maxSpeed = 4000; // set a max pwm output
 constexpr int minSpeed = 0;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
-constexpr int angleThreshold = 75; // angle at which to initiate pick up sequence
-constexpr int angleForward = 90;
+constexpr int kp = 0; // kp and kd for driving pid control
+constexpr int kd = 0;
 
-// camera params
-constexpr int img_size = 320;
-constexpr float horizontal_fov = 62.2; //degrees
+//thresholds for pick up
+constexpr int angleThreshold=75;
+constexpr int clawCenterThreshold=20; //px from center
+constexpr double areaThresholdForPickup=5000.0;
+
+// misc cv params
+constexpr int imgSize=320;
+constexpr double horizontal_fov=62.2;
+constexpr int angleForward=90;
+constexpr int pwmChannel=0;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;

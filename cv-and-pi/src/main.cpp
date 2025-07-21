@@ -16,19 +16,28 @@ bool anglePastThreshold = false;
 //thresholds for pick up
 constexpr int angleThreshold=75;
 constexpr int clawCenterThreshold=20; //px
-constexpr double areaThresholdForPickup=4000.0;
+constexpr double areaThresholdForPickup=5000.0;
 
-
-constexpr int img_size=320;
+constexpr int imgSize=320;
 constexpr double horizontal_fov=62.2;
 constexpr int angleForward=90;
 volatile int speed=1600;
 constexpr int pwmChannel=0;
 constexpr int MG996RPin = 21; //pin #
 
+//debug rotation
+bool rotationTested=false;
 
 Servo MG996R;
 uint32_t MG996Pos = 55;
+
+void resetVars() {
+    MG996Pos = 55;
+    closeEnough = false;
+    clawCentered = false;
+    anglePastThreshold = false;
+    speed=1600;
+}
 
 int bound(int var, int minVal, int maxVal) {
     if (minVal > maxVal) {
@@ -62,32 +71,42 @@ void rotateTurret(int angle)
 }
 
 double angleToCenter(double pet_x_coord) {
-    double result=(pet_x_coord-(double)img_size/2)/(double)img_size*horizontal_fov;
-    MySerial.printf("Turret rotating, input: %.2lf, off by: %.2lf\n",pet_x_coord,result);
+    double result=(pet_x_coord-(double)imgSize/2)/(double)imgSize*horizontal_fov;
+    MySerial.printf("Turret rotating, off by: %.2lf\n",result);
     return result;
 }
 
 void pickUpPet() {
     MySerial.print("Pickup sequence initiated\n");
-    sleep(1);
+    delay(1000);
+    resetVars();
 }
 
-bool increasing=true;
-
 void testRotation() {
-    if (MG996Pos>=95) {
-        increasing=false;
-    } else if (MG996Pos<=15) {
-        increasing=true;
+    bool increasing=true;
+    MG996Pos = 56;
+    int count = 0;
+    while (count < 2) {
+        if (MG996Pos>=95) {
+            increasing=false;
+        } else if (MG996Pos<=15) {
+            increasing=true;
+        }
+
+        if (increasing) {
+            MG996Pos++;
+        } else {
+            MG996Pos--;
+        }
+
+        if (MG996Pos==55) {
+            count++;
+        }
+
+        ledcWrite(pwmChannel,MG996Pos);
+        //MySerial.println(MG996Pos);
+        delay(10);
     }
-    if (increasing) {
-        MG996Pos++;
-    } else {
-        MG996Pos--;
-    }
-    ledcWrite(pwmChannel,MG996Pos);
-    MySerial.println(MG996Pos);
-    delay(50);
 }
 
 void setup() {
@@ -98,15 +117,23 @@ void setup() {
     ledcAttachPin(MG996RPin,pwmChannel);
     MySerial.println("Serial starting");
 }
+
 void loop() {
+    if (!rotationTested) {
+        testRotation();
+        rotationTested=true;
+    }
     //delay(1000);
-    //MG996R.write(55);
     //MySerial.print("still running\n");
     //testRotation();
     ledcWrite(pwmChannel,MG996Pos);
     if (MySerial.available()) {
         String line = MySerial.readStringUntil('\n');
-        if (line.length()>1) {
+        if (line=="[SYSTEM MESSAGE] RESET") {
+            resetVars();
+            //rotationTested=false;
+            MySerial.printf("System message received\n");
+        } else if (line.length()>1) {
             // pet in visual range AND large enough (done on pi)
             sscanf(line.c_str(), "%lf,%lf,%lf,%lf", &petX, &petY, &petW, &petH);
             MySerial.printf("ESP received: x=%.2lf y=%.2lf w=%.2lf h=%.2lf\n", petX, petY, petW, petH);
@@ -117,8 +144,8 @@ void loop() {
             MySerial.printf("servo angle: %d\n",currentAngle);
 
             //rotate turret
-            double rotate_const=0.7;
-            if (abs((int)petX-img_size/2) > clawCenterThreshold) {
+            double rotate_const=1.0;
+            if (abs((int)petX-imgSize/2) > clawCenterThreshold) {
                 rotateTurret((int)(angleToCenter(petX)*rotate_const));
                 MySerial.printf("new servo angle once rotated: %d\n",servoPosToAngle(MG996Pos));
                 clawCentered=false;
@@ -150,7 +177,7 @@ void loop() {
                 int currentSpeed = speed;
                 tempSpeedCeiling=max(tempSpeedCeiling,100); // make sure speed is positive
                 speed=min(currentSpeed,tempSpeedCeiling);
-                MySerial.printf("robot speed: %d",speed);
+                MySerial.printf("robot speed: %d\n",speed);
             }
         }
     }

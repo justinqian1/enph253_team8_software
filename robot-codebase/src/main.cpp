@@ -5,7 +5,7 @@
 #include "driver/gpio.h"
 #include <HardwareSerial.h>
 #include "driver/pcnt.h"
-#include "PinAssignments.h"
+#include "constants.h"
 #include "hardware/CustomServo.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
@@ -23,7 +23,7 @@ TaskHandle_t idle_handle = nullptr;
 
 // initialize serial port for Pi communication
 
-HardwareSerial Serial2Pi(0); // for UART 2
+HardwareSerial Serial2Pi(0); // for UART 0
 
 // changing vars
 volatile int speed = 1600;    // average speed
@@ -31,8 +31,6 @@ volatile int speed = 1600;    // average speed
 // PID vars
 int distance = 0; // right = positive
 int last_distance = 0;
-int kp = 0;
-int kd = 0;
 int p = 0;
 int d = 0;
 int m = 0; // counts cycles since the reading last changed; more cycles = smaller d
@@ -47,12 +45,17 @@ int rightVal = 0;
 int leftSpeed = 0;
 int rightSpeed = 0;
 int lastOnTape = 0; // -1: left; 1: right
+
 // pet location vars
-bool petDetected = 0;
 float petX = 0;
 float petY = 0;
 float petW = 0;
 float petH = 0;
+
+//booleans for pick up
+bool closeEnough = false;
+bool clawCentered = false;
+bool anglePastThreshold = false;
 
 // other vars
 unsigned long startTime = 0;
@@ -550,12 +553,10 @@ void detect_task(void *parameters)
             String line = Serial2Pi.readStringUntil('\n');
             if (line.length()==1) {
                 // no pets; continue as normal
-                petDetected=0;
                 //Serial.printf("no pets\n");
             } else {
                 // pet in visual range
                 float rotate_const=0.5;
-                petDetected=1;
                 sscanf(line.c_str(), "%f,%f,%f,%f", &petX, &petY, &petW, &petH);
 
                 //rotate turret
@@ -619,10 +620,9 @@ void idle_task(void *parameters)
 void setup()
 {
     // put your setup code here, to run once:
-    Serial.begin(115200);
     if (run) {
         // initialize UART connection to the Pi
-        Serial2Pi.begin(9600, SERIAL_8N1, RXPin, TXPin);
+        Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
         Serial2Pi.write("Hello from the ESP32!");
 
         // initialize basic pin connections
@@ -754,14 +754,19 @@ void setup()
 void loop()
 {
     if (!run) {
+        // PUT TEST CODE HERE
+        
+        drive(speed);
+        delay(4);
+        /*
         testServo.setAngle(180);
         delay(100);
         testServo.setAngle(90);
         delay(100);
         testServo.setAngle(0);
         delay(100);
+        */
     }
-    // PUT TEST CODE HERE
 
     // to be left empty, robot should run in the freeRTOS task scheduler
 }
