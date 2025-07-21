@@ -20,6 +20,7 @@ class CustomServo : public servo_interface
     int getPosition();
     void setAngle(int angle) override;
     void setAngle(int angle, int time) override;
+    void rotate(int degrees);
 
     protected:
     int servoPin;

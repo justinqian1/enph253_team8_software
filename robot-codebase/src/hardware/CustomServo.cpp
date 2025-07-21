@@ -114,6 +114,14 @@ void CustomServo::setAngle(int position, int time)
     }
 }
 
+/**
+ * rotates the servo a certain number of degrees, with positive being clockwise
+ * @param degrees the number of degrees to rotate
+ */
+void CustomServo::rotate(int degrees) {
+    setAngle(this->servoPosition +  degrees);
+}
+
 //PRIVATE FUNCTIONS
 
 /**
