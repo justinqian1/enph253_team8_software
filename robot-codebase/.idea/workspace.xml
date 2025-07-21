@@ -31,13 +31,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="365fd3bd-6776-47af-bcaf-bb4f93e01a04" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/codeStyles/codeStyleConfig.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/editor.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/modules.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/robot-codebase.iml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hardware/Motor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hardware/Motor.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hardware/Motor.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/hardware/Motor.h" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -141,7 +135,7 @@
       <workItem from="1753079095102" duration="79000" />
       <workItem from="1753080527779" duration="255000" />
       <workItem from="1753080794276" duration="456000" />
-      <workItem from="1753081542243" duration="1657000" />
+      <workItem from="1753081542243" duration="2415000" />
     </task>
     <servers />
   </component>

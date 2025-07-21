@@ -6,7 +6,10 @@
 #include <HardwareSerial.h>
 #include "driver/pcnt.h"
 #include "PinAssignments.h"
+#include "hardware/CustomServo.h"
 
+// TRUE IF RUNNING, FALSE IF TESTING
+bool run = false;
 // global variables and task handles
 
 TaskHandle_t drive_handle = nullptr;
@@ -71,6 +74,7 @@ uint32_t DSPos = 0;
 // for rotating claw
 Servo MG996R;
 uint32_t MG996RPos = 0;
+CustomServo testServo(21, 0);
 
 // function declarations
 int distToTape();
@@ -85,6 +89,11 @@ void rotateTurret(int pos);
 void pickUpPet();
 void home();
 void PCNTsetup();
+
+
+// TEST PARAMETERS
+
+
 
 /**
  * distToTape - calculates the distance to the tape based on the IR sensor readings
@@ -611,133 +620,147 @@ void setup()
 {
     // put your setup code here, to run once:
     Serial.begin(115200);
-    // initialize UART connection to the Pi
-    Serial2Pi.begin(9600, SERIAL_8N1, RXPin, TXPin);
-    Serial2Pi.write("Hello from the ESP32!");
+    if (run) {
+        // initialize UART connection to the Pi
+        Serial2Pi.begin(9600, SERIAL_8N1, RXPin, TXPin);
+        Serial2Pi.write("Hello from the ESP32!");
 
-    // initialize basic pin connections
+        // initialize basic pin connections
 
-    // needs to be pull up for encoder to function properly (I think <-- TO BE TESTED)
-    pinMode(rotaryEncoderPinA, INPUT_PULLUP);
-    pinMode(rotaryEncoderPinB, INPUT_PULLUP);
+        // needs to be pull up for encoder to function properly (I think <-- TO BE TESTED)
+        pinMode(rotaryEncoderPinA, INPUT_PULLUP);
+        pinMode(rotaryEncoderPinB, INPUT_PULLUP);
 
-    // initialize adc channels for pwm signals to operate drive
-    adc1_config_width(ADC_WIDTH_BIT_12);
+        // initialize adc channels for pwm signals to operate drive
+        adc1_config_width(ADC_WIDTH_BIT_12);
 
-    adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12); // ir sensor inputs (pin 32)
-    adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_12); // pin 33
-    adc2_config_channel_atten(ADC2_CHANNEL_7, ADC_ATTEN_DB_12); // pin 27 = p_pot (to be removed later)
-    adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12); // pin 14 = d_pot
+        adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12); // ir sensor inputs (pin 32)
+        adc1_config_channel_atten(ADC1_CHANNEL_5, ADC_ATTEN_DB_12); // pin 33
+        adc2_config_channel_atten(ADC2_CHANNEL_7, ADC_ATTEN_DB_12); // pin 27 = p_pot (to be removed later)
+        adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12); // pin 14 = d_pot
 
-    ledcSetup(leftPwmChannel, 250, 12); // middle number: duty cycle resolution in hz
-    ledcSetup(rightPwmChannel, 250, 12);
-    ledcAttachPin(pwmOut1, leftPwmChannel);
-    ledcAttachPin(pwmOut2, rightPwmChannel); // both motors controlled by same pwm channel
+        ledcSetup(leftPwmChannel, 250, 12); // middle number: duty cycle resolution in hz
+        ledcSetup(rightPwmChannel, 250, 12);
+        ledcAttachPin(pwmOut1, leftPwmChannel);
+        ledcAttachPin(pwmOut2, rightPwmChannel); // both motors controlled by same pwm channel
 
-    ledcSetup(carriagePWMChannel, 250, 12);
-    ledcAttachPin(carriageMotorPWM, carriagePWMChannel);
+        ledcSetup(carriagePWMChannel, 250, 12);
+        ledcAttachPin(carriageMotorPWM, carriagePWMChannel);
 
-    ledcSetup(clawExtPWMChannel, 250, 12);
-    ledcAttachPin(clawExtMotorPWM, clawExtPWMChannel);
+        ledcSetup(clawExtPWMChannel, 250, 12);
+        ledcAttachPin(clawExtMotorPWM, clawExtPWMChannel);
 
-    // attach pins for ISRs
+        // attach pins for ISRs
 
-    pinMode(startSwitch, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(startSwitch), startButtonPressedISR, RISING);
-    pinMode(basketSwitch, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(basketSwitch), basketSwitchPressedISR, RISING);
+        pinMode(startSwitch, INPUT_PULLUP);
+        attachInterrupt(digitalPinToInterrupt(startSwitch), startButtonPressedISR, RISING);
+        pinMode(basketSwitch, INPUT_PULLUP);
+        attachInterrupt(digitalPinToInterrupt(basketSwitch), basketSwitchPressedISR, RISING);
 
-    // starts the PCNT setup code
-    PCNTSetup();
-    // create tasks associated with functions defined above
-    // priorities are temporary and TBD
-    xTaskCreate(
-        drive_task,   // function to be run
-        "Driving",    // description of task
-        1000,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
-        NULL,         // parameters, dependent on function
-        1,            // priority
-        &drive_handle // task handle
-    );
+        // starts the PCNT setup code
+        PCNTSetup();
+        // create tasks associated with functions defined above
+        // priorities are temporary and TBD
+        xTaskCreate(
+            drive_task,   // function to be run
+            "Driving",    // description of task
+            1000,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
+            NULL,         // parameters, dependent on function
+            1,            // priority
+            &drive_handle // task handle
+        );
 
-    xTaskCreate(
-        grab_task,   // function to be run
-        "Grabbing",  // description of task
-        1000,        // bytes allocated to this stack
-        NULL,        // parameters, dependent on function
-        2,           // priority
-        &grab_handle // task handle
-    );
+        xTaskCreate(
+            grab_task,   // function to be run
+            "Grabbing",  // description of task
+            1000,        // bytes allocated to this stack
+            NULL,        // parameters, dependent on function
+            2,           // priority
+            &grab_handle // task handle
+        );
 
-    xTaskCreate(
-        reverse_task,   // function to be run
-        "Reversing",    // description of task
-        1000,           // bytes allocated to this stack
-        NULL,           // parameters, dependent on function
-        3,              // priority
-        &reverse_handle // task handle
-    );
+        xTaskCreate(
+            reverse_task,   // function to be run
+            "Reversing",    // description of task
+            1000,           // bytes allocated to this stack
+            NULL,           // parameters, dependent on function
+            3,              // priority
+            &reverse_handle // task handle
+        );
 
-    xTaskCreate(
-        raise_basket_task,   // function to be run
-        "Raising Basket",    // description of task
-        1000,                // bytes allocated to this stack
-        NULL,                // parameters, dependent on function
-        3,                   // priority
-        &raise_basket_handle // task handle
-    );
+        xTaskCreate(
+            raise_basket_task,   // function to be run
+            "Raising Basket",    // description of task
+            1000,                // bytes allocated to this stack
+            NULL,                // parameters, dependent on function
+            3,                   // priority
+            &raise_basket_handle // task handle
+        );
 
-    // high priority task since it occurs on startup
-    xTaskCreate(
-        home_task,   // function to be run
-        "Homing",    // description of task
-        1000,        // bytes allocated to this stack
-        NULL,        // parameters, dependent on function
-        5,           // priority
-        &home_handle // task handle
-    );
+        // high priority task since it occurs on startup
+        xTaskCreate(
+            home_task,   // function to be run
+            "Homing",    // description of task
+            1000,        // bytes allocated to this stack
+            NULL,        // parameters, dependent on function
+            5,           // priority
+            &home_handle // task handle
+        );
 
-    // high priority task since it overrides all other functions once 90 seconds are triggered
-    xTaskCreate(
-        full_turn_task,  // function to be run
-        "Turning (360)", // description of task
-        1000,            // bytes allocated to this stack
-        NULL,            // parameters, dependent on function
-        5,               // priority
-        &detect_handle   // task handle
-    );
+        // high priority task since it overrides all other functions once 90 seconds are triggered
+        xTaskCreate(
+            full_turn_task,  // function to be run
+            "Turning (360)", // description of task
+            1000,            // bytes allocated to this stack
+            NULL,            // parameters, dependent on function
+            5,               // priority
+            &detect_handle   // task handle
+        );
 
-    xTaskCreate(
-        detect_task,   // function to be run
-        "Detecting",   // description of task
-        1000,          // bytes allocated to this stack
-        NULL,          // parameters, dependent on function
-        2,             // priority
-        &detect_handle // task handle
-    );
+        xTaskCreate(
+            detect_task,   // function to be run
+            "Detecting",   // description of task
+            1000,          // bytes allocated to this stack
+            NULL,          // parameters, dependent on function
+            2,             // priority
+            &detect_handle // task handle
+        );
 
-    xTaskCreate(
-        idle_task,   // function to be run
-        "Idling",    // description of task
-        1000,        // bytes allocated to this stack
-        NULL,        // parameters, dependent on function
-        5,           // priority
-        &idle_handle // task handle
-    );
+        xTaskCreate(
+            idle_task,   // function to be run
+            "Idling",    // description of task
+            1000,        // bytes allocated to this stack
+            NULL,        // parameters, dependent on function
+            5,           // priority
+            &idle_handle // task handle
+        );
 
-    // Servo setups
-    SG90.setPeriodHertz(50);
-    SG90.attach(SG90Pin, 500, 2400);
+        // Servo setups
+        SG90.setPeriodHertz(50);
+        SG90.attach(SG90Pin, 500, 2400);
 
-    DS.setPeriodHertz(50);
-    DS.attach(DSPin, 500, 2400);
+        DS.setPeriodHertz(50);
+        DS.attach(DSPin, 500, 2400);
 
-    MG996R.setPeriodHertz(50);
-    MG996R.attach(MG996RPin, 500, 2400);
+        MG996R.setPeriodHertz(50);
+        MG996R.attach(MG996RPin, 500, 2400);
+    }
+
+    if (!run) {
+        CustomServo testServo(21, 0);
+    }
 }
 
 void loop()
 {
+    if (!run) {
+        testServo.setAngle(180);
+        delay(1000);
+        testServo.setAngle(90);
+        delay(1000);
+        testServo.setAngle(0);
+        delay(1000);
+    }
     // PUT TEST CODE HERE
 
     // to be left empty, robot should run in the freeRTOS task scheduler
