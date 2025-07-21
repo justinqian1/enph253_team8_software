@@ -787,7 +787,7 @@ void setup()
 
 void loop()
 {
-    // put your main code here, to run repeatedly:
+    // PUT TEST CODE HERE
 
     // to be left empty, robot should run in the freeRTOS task scheduler
 }

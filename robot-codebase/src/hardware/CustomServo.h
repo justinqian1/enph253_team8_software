@@ -12,10 +12,10 @@
 class CustomServo : public servo_interface
 {
     public:
-    explicit CustomServo(int pin, int channel);
-    explicit CustomServo(int pin, int channel, int position);
-    explicit CustomServo(int pin, int channel, int position, int period);
-    explicit CustomServo(int pin, int channel, int position, int period, unsigned long min, unsigned long max); 
+    CustomServo(int pin, int channel);
+    CustomServo(int pin, int channel, int position);
+    CustomServo(int pin, int channel, int position, int period);
+    CustomServo(int pin, int channel, int position, int period, unsigned long min, unsigned long max);
     int getPin();
     int getPosition();
     void setAngle(int angle) override;
