@@ -755,11 +755,11 @@ void loop()
 {
     if (!run) {
         testServo.setAngle(180);
-        delay(1000);
+        delay(100);
         testServo.setAngle(90);
-        delay(1000);
+        delay(100);
         testServo.setAngle(0);
-        delay(1000);
+        delay(100);
     }
     // PUT TEST CODE HERE
 
