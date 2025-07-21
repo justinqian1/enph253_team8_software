@@ -30,11 +30,6 @@ void Motor::driveMotor(int speed, int direction)
     }
 }
 
-void Motor::drivePID(int avgSpeed)
-{
-
-}
-
 void Motor::stopMotor()
 {
     ledcWrite(this->motorPWMPin, 0);
