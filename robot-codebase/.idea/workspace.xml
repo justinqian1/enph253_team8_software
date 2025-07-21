@@ -23,12 +23,7 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="365fd3bd-6776-47af-bcaf-bb4f93e01a04" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hardware/CustomServo.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/hardware/CustomServo.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/hardware/CustomServo.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/hardware/CustomServo.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.cpp" afterDir="false" />
-    </list>
+    <list default="true" id="365fd3bd-6776-47af-bcaf-bb4f93e01a04" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -107,12 +102,23 @@
       <workItem from="1752876830409" duration="2554000" />
       <workItem from="1752970731604" duration="280000" />
       <workItem from="1752971177112" duration="7470000" />
-      <workItem from="1752990567132" duration="1519000" />
+      <workItem from="1752990567132" duration="2626000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="XSLT-Support.FileAssociations.UIState">
     <expand />
