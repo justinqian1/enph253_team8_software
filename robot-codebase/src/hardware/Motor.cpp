@@ -24,6 +24,8 @@ void Motor::driveMotor(int speed, int direction)
         ledcWrite(this->motorPWMPin, speed);
     } else
     {
+        stopMotor();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
         digitalWrite(this->motorDirectionPin, direction);
         ledcWrite(this->motorPWMPin, speed);
         this->currentDirection = direction;
@@ -37,12 +39,32 @@ void Motor::stopMotor()
 
 void Motor::driveForward(int speed)
 {
-    driveMotor(speed, HIGH);
+    if (this->currentDirection == HIGH)
+    {
+        ledcWrite(this->motorPWMPin, speed);
+    } else
+    {
+        stopMotor();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
+        digitalWrite(this->motorDirectionPin, HIGH);
+        ledcWrite(this->motorPWMPin, speed);
+        this->currentDirection = HIGH;
+    }
 }
 
 void Motor::driveReverse(int speed)
 {
-    driveMotor(speed, LOW);
+    if (this->currentDirection == LOW)
+    {
+        ledcWrite(this->motorPWMPin, speed);
+    } else
+    {
+        stopMotor();
+        vTaskDelay(5 / portTICK_PERIOD_MS);
+        digitalWrite(this->motorDirectionPin, LOW);
+        ledcWrite(this->motorPWMPin, speed);
+        this->currentDirection = LOW;
+    }
 }
 
 int Motor::getMotorPWMPin()
