@@ -7,6 +7,7 @@
 #include "driver/pcnt.h"
 #include "constants.h"
 #include "hardware/CustomServo.h"
+#include "components/DriveMotors.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
 bool run = false;
@@ -78,6 +79,13 @@ uint32_t DSPos = 0;
 Servo MG996R;
 uint32_t MG996RPos = 0;
 CustomServo testServo(21, 0);
+
+//  motor declarations
+Motor leftMotor(leftPwmChannel);
+Motor rightMotor(rightPwmChannel);
+IRSensor leftIRSensor(ADC1_CHANNEL_4);
+IRSensor rightIRSensor(ADC1_CHANNEL_5);
+DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
 // function declarations
 int distToTape();
@@ -615,6 +623,13 @@ void idle_task(void *parameters)
     vTaskDelete(NULL);
 }
 
+void test_drive(void *parameters) {
+    for (;;) {
+        robot.drivePID(speed);
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+    }
+}
+
 // add more functions here
 
 void setup()
@@ -747,7 +762,14 @@ void setup()
     }
 
     if (!run) {
-        CustomServo testServo(21, 0);
+        //CustomServo testServo(21, 0);
+        xTaskCreate(
+            test_drive,
+            "Testing Drive",
+            1000,
+            NULL,
+            0,
+            NULL);
     }
 }
 
@@ -755,9 +777,10 @@ void loop()
 {
     if (!run) {
         // PUT TEST CODE HERE
-        
+        /*
         drive(speed);
         delay(4);
+        */
         /*
         testServo.setAngle(180);
         delay(100);
