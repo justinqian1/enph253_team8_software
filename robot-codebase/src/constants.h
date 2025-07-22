@@ -5,6 +5,8 @@
 #ifndef PINASSIGNMENTS_H
 #define PINASSIGNMENTS_H
 
+#include "driver/pcnt.h"
+
 // PWM Channels
 
 constexpr int leftPwmChannel = 0;

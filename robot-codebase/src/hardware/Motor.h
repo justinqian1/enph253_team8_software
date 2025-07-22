@@ -15,7 +15,7 @@ class Motor : public motor_interface
      * Creates a motor object assigned to a specific PWM channel
      * @param pwmCh
      */
-    explicit Motor(int pwmCh);
+    Motor(int pwmCh);
 
     /**
      * Assigns PWM and direction pins to a motor object
