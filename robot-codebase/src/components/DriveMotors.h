@@ -60,7 +60,7 @@ public:
      */
     void driveRightMotor(int speed, int direction);
 
-private:
+protected:
     int leftMotorDirection = 1;
     int rightMotorDirection = 1;
     int currentSpeed = 0;
@@ -81,7 +81,11 @@ private:
     int ctrl = 0;
     int leftReading = 0;
     int rightReading = 0;
-
+    bool leftOnTape = 1;
+    bool rightOnTape = 1;
+    int lastOnTape = 0;
+    int leftThreshold = 2500;
+    int  rightThreshold = 2500;
 
     /**
      * calculates the current distance from the tape

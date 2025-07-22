@@ -11,7 +11,7 @@ class motor_interface
     virtual void driveMotor(int speed, int direction);
     virtual void driveForward(int speed);
     virtual void driveReverse(int speed);
-    virtual void stop();
+    virtual void stopMotor();
     virtual ~motor_interface() = default;
 
 };

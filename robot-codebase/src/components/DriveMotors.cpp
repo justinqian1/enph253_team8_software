@@ -32,7 +32,9 @@ void DriveMotors::drivePID(int speed) {
 }
 
 void DriveMotors::drivePID(int speed, double proportional,
-                           double derivative) : kProp(proportional), kDeriv(derivative) {
+                           double derivative) {
+    kProp = proportional;
+    kDeriv = derivative;
     _last_distance = _distance;
     _distance = distToTape();
 
@@ -54,8 +56,8 @@ void DriveMotors::drivePID(int speed, double proportional,
 }
 
 void DriveMotors::stop() {
-    leftMotor.stop();
-    rightMotor.stop();
+    leftMotor.stopMotor();
+    rightMotor.stopMotor();
 }
 
 void DriveMotors::driveStraight(int speed, int direction) {
@@ -72,4 +74,42 @@ void DriveMotors::driveRightMotor(int speed, int direction) {
 }
 
 
+/**
+ * distToTape - calculates the distance to the tape based on the IR sensor readings
+ *
+ * @return an integer indicating the robot's distance from the tape, either +/-5, +/-1, or 0 (on the line)
+ */
+int DriveMotors::distToTape()
+{
+    int dist = 0;
+    leftOnTape = leftIRSensor.readThreshold(leftThreshold); // adc1 ch6 = pin 34
+    rightOnTape = rightIRSensor.readThreshold(rightThreshold); // adc1 ch7 = pin 35
+    if (leftOnTape == 1 && rightOnTape == 1)
+    {
+        dist = 0;
+    }
+    else if (leftOnTape == 0 && rightOnTape == 1)
+    {
+        // only right sensor is on tape -> robot is to the left
+        dist = -1;
+        lastOnTape = 1;
+    }
+    else if (leftOnTape == 1 && rightOnTape == 0)
+    {
+        // only left sensor is on tape -> robot is to the left
+        dist = 1;
+        lastOnTape = -1;
+    }
+    else if (leftOnTape == 0 && rightOnTape == 0 && lastOnTape == 1)
+    {
+        // neither on tape but right was last one on tape
+        dist = -5;
+    }
+    else
+    {
+        // neither on tape but left was last one on tape
+        dist = 5;
+    }
+    return dist;
+}
 

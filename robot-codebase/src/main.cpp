@@ -81,11 +81,11 @@ uint32_t MG996RPos = 0;
 CustomServo testServo(21, 0);
 
 //  motor declarations
-Motor leftMotor(leftPwmChannel);
-Motor rightMotor(rightPwmChannel);
-IRSensor leftIRSensor(ADC1_CHANNEL_4);
-IRSensor rightIRSensor(ADC1_CHANNEL_5);
-DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+        Motor leftMotor(leftPwmChannel);
+        Motor rightMotor(rightPwmChannel);
+        IRSensor leftIRSensor(ADC1_CHANNEL_4);
+        IRSensor rightIRSensor(ADC1_CHANNEL_5);
+        DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
 // function declarations
 int distToTape();
@@ -151,7 +151,7 @@ int distToTape()
  * @return angle between -31 (pet on very left of frame) to +31 (pet on very right of frame)
  */
 float angleToCenter(float pet_x_coord) {
-    return (pet_x_coord-(float)img_size/2)*horizontal_fov;
+    return 0;//(pet_x_coord-(float)img_size/2)*horizontal_fov;
 }
 
 /**
@@ -168,9 +168,10 @@ void drive(const int avgSpeedInput)
         q = m;
         m = 1;
     }
-
+    /*
     adc2_get_raw(ADC2_CHANNEL_7, ADC_WIDTH_10Bit, &kp); // WILL BE REMOVED
     adc2_get_raw(ADC2_CHANNEL_6, ADC_WIDTH_10Bit, &kd);
+    */
     p = kp * distance;
     d = (int)((float)kd * (float)(distance - last_distance) / (float)(q + m));
     // i+=ki*distance;
@@ -555,6 +556,7 @@ void full_turn_task(void *parameters)
  */
 void detect_task(void *parameters)
 {
+    /*
     // detection code for determining pet location
     while (1) {
         if (Serial2Pi.available()) {
@@ -594,7 +596,8 @@ void detect_task(void *parameters)
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10));
-    }
+
+    }*/
 }
 
 /**
@@ -624,8 +627,11 @@ void idle_task(void *parameters)
 }
 
 void test_drive(void *parameters) {
+    DriveMotors* robot = static_cast<DriveMotors*>(parameters);
     for (;;) {
-        robot.drivePID(speed);
+
+        robot->drivePID(speed);
+        Serial.println("LOOP!");
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
@@ -763,11 +769,14 @@ void setup()
 
     if (!run) {
         //CustomServo testServo(21, 0);
+        leftMotor.attachPins(pwmOut1, dirOut1);
+        rightMotor.attachPins(pwmOut2, dirOut2);
+
         xTaskCreate(
             test_drive,
             "Testing Drive",
             1000,
-            NULL,
+            &robot,
             0,
             NULL);
     }
