@@ -8,6 +8,7 @@
 #include "hardware/CustomServo.h"
 #include "hardware/Motor.h"
 #include "hardware/IRSensor.h"
+#include "constants.h"
 
 class DriveMotors {
 public:
@@ -21,18 +22,12 @@ public:
     DriveMotors(const Motor &lMotor, const Motor &rMotor, const IRSensor &lIRSensor, const IRSensor &rIRSensor);
 
     /**
-     * Drives the robot with PID control with default parameters
-     * @param speed the average speed to drive the robot at
-     */
-    void drivePID(int speed);
-
-    /**
      * Drives the robot with PID control, with variable parameters
      * @param speed the average speed to drive the robot at
      * @param proportional the proportional term for the PID
      * @param derivative the derivative term for the PID
      */
-    void drivePID(int speed, double proportional, double derivative);
+    void drivePID(int speed, int kp=defaultKProp, int kd=defaultKDeriv);
 
     /**
      * Stops the robot by stopping both motors
@@ -74,9 +69,7 @@ protected:
     int _mDist = 0;
     int proportional = 0;
     int derivative = 0;
-    int kProp = 500;
-    int kDeriv = 10;
-    int maxSpeed = 4095;
+    int maxSpeed = 2500;
     int minSpeed = 0;
     int ctrl = 0;
     int leftReading = 0;
@@ -84,8 +77,8 @@ protected:
     bool leftOnTape = 1;
     bool rightOnTape = 1;
     int lastOnTape = 0;
-    int leftThreshold = 2500;
-    int  rightThreshold = 2500;
+    int leftThreshold = 3100;
+    int rightThreshold = 3100;
 
     /**
      * calculates the current distance from the tape

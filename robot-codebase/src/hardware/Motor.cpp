@@ -3,10 +3,11 @@
 //
 
 #include "Motor.h"
+#include "constants.h"
 
 Motor::Motor(int pwmCh) : pwmChannel(pwmCh)
 {
-    ledcSetup(this->pwmChannel, 250,12);
+    ledcSetup(this->pwmChannel, pwmFreq, 12);
 }
 
 void Motor::attachPins(int pwmPin, int dirPin)
@@ -14,7 +15,7 @@ void Motor::attachPins(int pwmPin, int dirPin)
     this->motorPWMPin = pwmPin;
     this->motorDirectionPin = dirPin;
     ledcAttachPin(this->motorPWMPin, pwmChannel);
-    digitalWrite(this->motorDirectionPin, LOW);
+    digitalWrite(this->motorDirectionPin, HIGH);
 }
 
 void Motor::driveMotor(int speed, int direction)

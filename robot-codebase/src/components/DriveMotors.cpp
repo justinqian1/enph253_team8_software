@@ -9,7 +9,7 @@ DriveMotors::DriveMotors(const Motor &lMotor, const Motor &rMotor, const IRSenso
                          const IRSensor &rIRSensor) : leftMotor(lMotor), rightMotor(rMotor), leftIRSensor(lIRSensor),
                                                       rightIRSensor(rIRSensor) {
 }
-
+/*
 void DriveMotors::drivePID(int speed) {
     _last_distance = _distance;
     _distance = distToTape();
@@ -30,11 +30,9 @@ void DriveMotors::drivePID(int speed) {
     leftReading = leftIRSensor.read();
     rightReading = rightIRSensor.read();
 }
-
-void DriveMotors::drivePID(int speed, double proportional,
-                           double derivative) {
-    kProp = proportional;
-    kDeriv = derivative;
+*/
+void DriveMotors::drivePID(int speed, int kp,
+                           int kd) {
     _last_distance = _distance;
     _distance = distToTape();
 
@@ -43,16 +41,24 @@ void DriveMotors::drivePID(int speed, double proportional,
         _mDist = 1;
     }
 
-    proportional = kProp * _distance;
-    derivative = (int) ((float) kDeriv * (float) (_distance - _last_distance) / (float) (_qDist + _mDist));
+    proportional = kp * _distance;
+    derivative = (int) ((float) kd * (float) (_distance - _last_distance) / (float) (_qDist + _mDist));
     // i+=ki*distance;
-    ctrl = (int) (proportional + derivative);
+    ctrl = proportional + derivative;
     _mDist++;
 
     leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), HIGH);
     rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), HIGH);
     leftReading = leftIRSensor.read();
     rightReading = rightIRSensor.read();
+    Serial.print("Left reading");
+    Serial.println(leftReading);
+    Serial.print("Right reading:");
+    Serial.println(rightReading);
+    Serial.print("Left speed:");
+    Serial.println(constrain(speed - ctrl, minSpeed, maxSpeed));
+    Serial.print("Right speed:");
+    Serial.println(constrain(speed + ctrl, minSpeed, maxSpeed));
 }
 
 void DriveMotors::stop() {
@@ -84,23 +90,23 @@ int DriveMotors::distToTape()
     int dist = 0;
     leftOnTape = leftIRSensor.readThreshold(leftThreshold); // adc1 ch6 = pin 34
     rightOnTape = rightIRSensor.readThreshold(rightThreshold); // adc1 ch7 = pin 35
-    if (leftOnTape == 1 && rightOnTape == 1)
+    if (leftOnTape && rightOnTape)
     {
         dist = 0;
     }
-    else if (leftOnTape == 0 && rightOnTape == 1)
+    else if (!leftOnTape && rightOnTape)
     {
         // only right sensor is on tape -> robot is to the left
         dist = -1;
         lastOnTape = 1;
     }
-    else if (leftOnTape == 1 && rightOnTape == 0)
+    else if (leftOnTape && !rightOnTape)
     {
         // only left sensor is on tape -> robot is to the left
         dist = 1;
         lastOnTape = -1;
     }
-    else if (leftOnTape == 0 && rightOnTape == 0 && lastOnTape == 1)
+    else if (!leftOnTape && !rightOnTape && lastOnTape == 1)
     {
         // neither on tape but right was last one on tape
         dist = -5;
@@ -112,4 +118,3 @@ int DriveMotors::distToTape()
     }
     return dist;
 }
-

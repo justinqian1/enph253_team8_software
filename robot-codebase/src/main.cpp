@@ -27,7 +27,7 @@ TaskHandle_t idle_handle = nullptr;
 HardwareSerial Serial2Pi(0); // for UART 0
 
 // changing vars
-volatile int speed = 1600;    // average speed
+volatile int speed = 1900;    // average speed
 
 // PID vars
 int distance = 0; // right = positive
@@ -81,11 +81,11 @@ uint32_t MG996RPos = 0;
 CustomServo testServo(21, 0);
 
 //  motor declarations
-        Motor leftMotor(leftPwmChannel);
-        Motor rightMotor(rightPwmChannel);
-        IRSensor leftIRSensor(ADC1_CHANNEL_4);
-        IRSensor rightIRSensor(ADC1_CHANNEL_5);
-        DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+Motor leftMotor(leftPwmChannel);
+Motor rightMotor(rightPwmChannel);
+IRSensor leftIRSensor(ADC1_CHANNEL_6);
+IRSensor rightIRSensor(ADC1_CHANNEL_7);
+DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
 // function declarations
 int distToTape();
@@ -151,14 +151,14 @@ int distToTape()
  * @return angle between -31 (pet on very left of frame) to +31 (pet on very right of frame)
  */
 float angleToCenter(float pet_x_coord) {
-    return 0;//(pet_x_coord-(float)img_size/2)*horizontal_fov;
+    return (pet_x_coord-(float)imgSize/2)*horizontal_fov;
 }
 
 /**
  * drives the robot forward with PID control
  * @param avgSpeedInput the average speed of the robot while driving
  */
-void drive(const int avgSpeedInput)
+void drive(int avgSpeedInput)
 {
     last_distance = distance;
     distance = distToTape();
@@ -168,12 +168,9 @@ void drive(const int avgSpeedInput)
         q = m;
         m = 1;
     }
-    /*
-    adc2_get_raw(ADC2_CHANNEL_7, ADC_WIDTH_10Bit, &kp); // WILL BE REMOVED
-    adc2_get_raw(ADC2_CHANNEL_6, ADC_WIDTH_10Bit, &kd);
-    */
-    p = kp * distance;
-    d = (int)((float)kd * (float)(distance - last_distance) / (float)(q + m));
+
+    p = defaultKProp * distance;
+    d = (int)((float)defaultKDeriv * (float)(distance - last_distance) / (float)(q + m));
     // i+=ki*distance;
     ctrl = (int)(p + d);
     m++;
@@ -184,25 +181,21 @@ void drive(const int avgSpeedInput)
     leftSpeed = min(leftSpeed, maxSpeed);
     rightSpeed = max(avgSpeedInput + ctrl, minSpeed);
     rightSpeed = min(rightSpeed, maxSpeed);
-    driveMotor(leftPwmChannel, dirOut1, leftSpeed, 1);
-    driveMotor(rightPwmChannel, dirOut2, rightSpeed, 1);
-    leftVal = adc1_get_raw(ADC1_CHANNEL_4);
-    rightVal = adc1_get_raw(ADC1_CHANNEL_5);
+    ledcWrite(leftPwmChannel,leftSpeed);
+    ledcWrite(rightPwmChannel,rightSpeed);
+    //driveMotor(leftPwmChannel, dirOut1, leftSpeed, 1);
+    //driveMotor(rightPwmChannel, dirOut2, rightSpeed, 1);
+    leftVal = adc1_get_raw(ADC1_CHANNEL_6);
+    rightVal = adc1_get_raw(ADC1_CHANNEL_7);
 
-    // Serial.print("Left reading:");
-    // Serial.println(leftVal);
-    // Serial.print("Right reading:");
-    // Serial.println(rightVal);
-    // Serial.print("Distance:");
-    // Serial.println(distance);
-    // Serial.print("kp:");
-    // Serial.println(kp);
-    // Serial.print("kd:");
-    // Serial.println(kd);
-    // Serial.print("Speed left:");
-    // Serial.println(leftSpeed);
-    // Serial.print("Speed right:");
-    // Serial.println(rightSpeed);
+    Serial.print("Left reading:");
+    Serial.println(leftVal);
+    Serial.print("Right reading:");
+    Serial.println(rightVal);
+    Serial.print("Speed left:");
+    Serial.println(leftSpeed);
+    Serial.print("Speed right:");
+    Serial.println(rightSpeed);
 }
 
 /**
@@ -596,8 +589,8 @@ void detect_task(void *parameters)
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10));
-
-    }*/
+    }
+        */
 }
 
 /**
@@ -632,7 +625,7 @@ void test_drive(void *parameters) {
 
         robot->drivePID(speed);
         Serial.println("LOOP!");
-        vTaskDelay(10 / portTICK_PERIOD_MS);
+        vTaskDelay((1000/pwmFreq) / portTICK_PERIOD_MS);
     }
 }
 
@@ -769,6 +762,7 @@ void setup()
 
     if (!run) {
         //CustomServo testServo(21, 0);
+        Serial.begin(9600);
         leftMotor.attachPins(pwmOut1, dirOut1);
         rightMotor.attachPins(pwmOut2, dirOut2);
 
@@ -779,6 +773,18 @@ void setup()
             &robot,
             0,
             NULL);
+        /*
+        adc1_config_width(ADC_WIDTH_BIT_12);
+        adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_12); // ir sensor inputs (pin 34/35)
+        adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_12);
+
+        ledcSetup(leftPwmChannel,pwmFreq,12);
+        ledcSetup(rightPwmChannel,pwmFreq,12);
+        ledcAttachPin(pwmOut1,leftPwmChannel);
+        ledcAttachPin(pwmOut2,rightPwmChannel);
+        pinMode(dirOut1,OUTPUT);
+        pinMode(dirOut2,OUTPUT);
+        */
     }
 }
 
@@ -788,9 +794,7 @@ void loop()
         // PUT TEST CODE HERE
         /*
         drive(speed);
-        delay(4);
-        */
-        /*
+        delay(1000/pwmFreq);
         testServo.setAngle(180);
         delay(100);
         testServo.setAngle(90);

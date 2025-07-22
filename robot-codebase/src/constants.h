@@ -1,7 +1,7 @@
 //
 // Created by bram on 20/07/25.
 //
-
+#include "driver/pcnt.h"
 #ifndef PINASSIGNMENTS_H
 #define PINASSIGNMENTS_H
 
@@ -9,14 +9,14 @@
 
 // PWM Channels
 
-constexpr int leftPwmChannel = 0;
-constexpr int rightPwmChannel = 1;
+constexpr int leftPwmChannel = 6;
+constexpr int rightPwmChannel = 7;
 constexpr int carriagePWMChannel = 2;
 constexpr int clawExtPWMChannel = 3;
 
 // ESP32 pins
-constexpr int pwmOut1 = 20; // outputs the pwm channel according to ledcAttachPin
-constexpr int dirOut1 = 21;
+constexpr int pwmOut1 = 8; // outputs the pwm channel according to ledcAttachPin
+constexpr int dirOut1 = 7;
 constexpr int pwmOut2 = 22;
 constexpr int dirOut2 = 19;
 constexpr int irSensorLeft = 9;
@@ -40,13 +40,16 @@ constexpr int rotaryEncoderPinA = 2;
 constexpr int rotaryEncoderPinB = 15;
 
 // constants
-constexpr int thresholdL = 1800;
-constexpr int thresholdR = 1800;
-constexpr int maxSpeed = 4000; // set a max pwm output
+constexpr int thresholdL = 3100;
+constexpr int thresholdR = 3100;
+constexpr int maxSpeed = 2500; // set a max pwm output
 constexpr int minSpeed = 0;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
-constexpr int kp = 0; // kp and kd for driving pid control
-constexpr int kd = 0;
+
+// for driving
+constexpr int defaultKProp = 400; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 500;
+constexpr int pwmFreq = 500;
 
 //thresholds for pick up
 constexpr int angleThreshold=75;
