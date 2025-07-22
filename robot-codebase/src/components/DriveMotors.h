@@ -7,19 +7,21 @@
 
 #include "hardware/CustomServo.h"
 #include "hardware/Motor.h"
+#include "hardware/IRSensor.h"
 
-class DriveMotors
-{
+class DriveMotors {
 public:
     /**
-     * Creates a DriveMotor object with two motors to drive the robot
-     * @param leftMotor the left motor
-     * @param rightMotor the right motor
+     * Creates an object that represents a set of driving motors
+     * @param lMotor the left motor
+     * @param rMotor the right motor
+     * @param lIRSensor the left IR sensor
+     * @param rIRSensor the right IR sensor
      */
-    DriveMotors(const Motor& leftMotor, const Motor& rightMotor);
+    DriveMotors(const Motor &lMotor, const Motor &rMotor, const IRSensor &lIRSensor, const IRSensor &rIRSensor);
 
     /**
-     * Drives the robot with PID control
+     * Drives the robot with PID control with default parameters
      * @param speed the average speed to drive the robot at
      */
     void drivePID(int speed);
@@ -29,9 +31,8 @@ public:
      * @param speed the average speed to drive the robot at
      * @param proportional the proportional term for the PID
      * @param derivative the derivative term for the PID
-     * @param integral the integral term for the PID
      */
-    void drivePID(int speed, double proportional, double derivative, double integral);
+    void drivePID(int speed, double proportional, double derivative);
 
     /**
      * Stops the robot by stopping both motors
@@ -65,5 +66,27 @@ private:
     int currentSpeed = 0;
     Motor leftMotor;
     Motor rightMotor;
+    IRSensor leftIRSensor;
+    IRSensor rightIRSensor;
+    int _distance = 0;
+    int _last_distance = 0;
+    int _qDist = 0;
+    int _mDist = 0;
+    int proportional = 0;
+    int derivative = 0;
+    int kProp = 500;
+    int kDeriv = 10;
+    int maxSpeed = 4095;
+    int minSpeed = 0;
+    int ctrl = 0;
+    int leftReading = 0;
+    int rightReading = 0;
+
+
+    /**
+     * calculates the current distance from the tape
+     * @return the distance from the tape, either 0, +/- 1, or +/- 5
+     */
+    int distToTape();
 };
 #endif //DRIVEMOTORS_H
