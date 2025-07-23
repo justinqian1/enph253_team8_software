@@ -9,8 +9,8 @@
 
 // PWM Channels
 
-constexpr int leftPwmChannel = 6;
-constexpr int rightPwmChannel = 7;
+constexpr int leftPwmChannel = 0;
+constexpr int rightPwmChannel = 0;
 constexpr int carriageHeightPWMChannel = 2;
 constexpr int clawExtPWMChannel = 3;
 constexpr int carriageServoPWMChannel = 4;
@@ -41,19 +41,19 @@ constexpr int rotaryEncoderPinA = 2;
 constexpr int rotaryEncoderPinB = 15;
 
 // constants
-constexpr int thresholdL = 3100;
-constexpr int thresholdR = 3100;
+constexpr int thresholdL = 1300;
+constexpr int thresholdR = 1800;
 constexpr int maxSpeed = 2500; // set a max pwm output
 constexpr int minSpeed = 0;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 constexpr int carriageSpeed = 2000;
 
 // for driving
-constexpr int defaultKProp = 400; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 500;
+constexpr int defaultKProp = 0; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 0;
 constexpr int pwmFreq = 500;
-constexpr int dir1 = 1;
-constexpr int dir2 = 0;
+constexpr int dir1 = 0;
+constexpr int dir2 = 1;
 
 //thresholds for pick up
 constexpr int angleThreshold=75;
@@ -63,8 +63,13 @@ constexpr double areaThresholdForPickup=5000.0;
 // misc cv params
 constexpr int imgSize=320;
 constexpr double horizontal_fov=62.2;
-constexpr int angleForward=90;
 constexpr int pwmChannel=0;
+
+// carriage/servo setup
+constexpr int servoFreq = 50;
+constexpr int servoMinDuty = 500;
+constexpr int servoMaxDuty = 2500;
+constexpr int carriageForwardPos=90;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;

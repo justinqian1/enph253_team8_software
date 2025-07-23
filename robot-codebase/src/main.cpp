@@ -50,10 +50,10 @@ int rightSpeed = 0;
 int lastOnTape = 0; // -1: left; 1: right
 
 // pet location vars
-float petX = 0;
-float petY = 0;
-float petW = 0;
-float petH = 0;
+double petX = 0;
+double petY = 0;
+double petW = 0;
+double petH = 0;
 
 //booleans for pick up
 bool closeEnough = false;
@@ -81,7 +81,7 @@ Servo DS;
 uint32_t DSPos = 0;
 
 // for rotating turret
-CustomServo MG996R(MG996RPin,carriageServoPWMChannel, 90, 50, 500, 2500);
+CustomServo MG996R(MG996RPin,carriageServoPWMChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty);
 //uint32_t MG996RPos = 0;
 
 //  motor declarations
@@ -95,7 +95,7 @@ Motor carriageMotor(carriageHeightPWMChannel);
 
 // function declarations
 int distToTape();
-float angleToCenter(float pet_x_coord);
+double angleToCenter(double petX);
 void driveMotor(int motorPWM, int directionPin, int speed, int direction);
 void drive(int avgSpeedInput);
 void stopMotor(int motorPWM);
@@ -114,6 +114,16 @@ bool heightsForPickup[6] = {false, false, true, true, false, false}; //false = l
 // TEST PARAMETERS
 
 
+/**
+ * resets pet detection related variables after pickup
+ */
+void resetVars() {
+    MG996R.rotateTo(90);
+    closeEnough = false;
+    clawCentered = false;
+    anglePastThreshold = false;
+    speed=1900;
+}
 
 /**
  * distToTape - calculates the distance to the tape based on the IR sensor readings
@@ -159,8 +169,10 @@ int distToTape()
  * @param pet_x_coord center of pet's x coordinate
  * @return angle between -31 (pet on very left of frame) to +31 (pet on very right of frame)
  */
-float angleToCenter(float pet_x_coord) {
-    return (pet_x_coord-(float)imgSize/2)*horizontal_fov;
+double angleToCenter(double petX) {
+    double result= (petX-(double)imgSize/2)*horizontal_fov;
+    Serial2Pi.printf("Turret off by: %.2lf\n",result);
+    return result;
 }
 
 /**
@@ -169,7 +181,6 @@ float angleToCenter(float pet_x_coord) {
  */
 void drive(int avgSpeedInput)
 {
-    /*
     last_distance = distance;
     distance = distToTape();
 
@@ -187,10 +198,8 @@ void drive(int avgSpeedInput)
 
     digitalWrite(dirOut1, dir1);
     digitalWrite(dirOut2, dir2);
-    leftSpeed = max(avgSpeedInput - ctrl, minSpeed);
-    leftSpeed = min(leftSpeed, maxSpeed);
-    rightSpeed = max(avgSpeedInput + ctrl, minSpeed);
-    rightSpeed = min(rightSpeed, maxSpeed);
+    leftSpeed = constrain(avgSpeedInput - ctrl, minSpeed, maxSpeed);
+    rightSpeed = constrain(avgSpeedInput + ctrl, minSpeed, maxSpeed);
     ledcWrite(leftPwmChannel,leftSpeed);
     ledcWrite(rightPwmChannel,rightSpeed);
     //driveMotor(leftPwmChannel, dirOut1, leftSpeed, 1);
@@ -206,7 +215,6 @@ void drive(int avgSpeedInput)
     Serial.println(leftSpeed);
     Serial.print("Speed right:");
     Serial.println(rightSpeed);
-    */
 }
 
 /**
@@ -576,48 +584,63 @@ void full_turn_task(void *parameters)
  */
 void detect_task(void *parameters)
 {
-    /*
     // detection code for determining pet location
     while (1) {
         if (Serial2Pi.available()) {
             String line = Serial2Pi.readStringUntil('\n');
-            if (line.length()==1) {
-                // no pets; continue as normal
-                //Serial.printf("no pets\n");
-            } else {
-                // pet in visual range
-                float rotate_const=0.5;
-                sscanf(line.c_str(), "%f,%f,%f,%f", &petX, &petY, &petW, &petH);
+            if (line=="[SYSTEM MESSAGE] RESET") {
+                resetVars();
+                //rotationTested=false;
+                Serial2Pi.printf("System message 'RESET' received\n");
+            } else if (line.length()>1) {
+                // pet in visual range AND large enough (done on pi)
+                sscanf(line.c_str(), "%lf,%lf,%lf,%lf", &petX, &petY, &petW, &petH);
+                Serial2Pi.printf("ESP received: x=%.2lf y=%.2lf w=%.2lf h=%.2lf\n", petX, petY, petW, petH);
+
+                double petArea = petW*petH;
+                int currentAngle=MG996R.getPosition();
+                Serial2Pi.printf("servo angle: %d\n",currentAngle);
+
+                //check if pet big enough for pickup
+                closeEnough = petArea > areaThresholdForPickup;           
+
+                // check if angle is correct (off forward direction by at least 75 deg)
+                anglePastThreshold = (currentAngle < carriageForwardPos - angleThreshold ||
+                                  currentAngle > carriageForwardPos + angleThreshold);
 
                 //rotate turret
-                if (abs(petX-img_size/2) > 20) { //tolerance of 20; center of pet in pixels 140-180 is good enough
-                    rotateTurret((int)angleToCenter(petX)*rotate_const);
+                double rotate_const=1.0;
+                if (abs((int)petX-imgSize/2) > clawCenterThreshold) { //tolerance of 20; center of pet in pixels 140-180 is good enough
+                    MG996R.rotateBy((int)(angleToCenter(petX)*rotate_const));
+                    clawCentered=false;
+                } else {
+                    clawCentered = true;
                 }
 
-                // slow down robot/initiate pick up sequence
-                float petArea = petW*petH;
-                if (petArea > 1500) { //within ~2ft of pet
-                    int currentAngle = MG996R.read();
-                    if (currentAngle < angleForward - angleThreshold || currentAngle > angleForward + angleThreshold) {
-                        // arm is at nearly 90 degree angle -> initiate pick up
-                        vTaskSuspendAll();
-                        pickUpPet();      
-                        xTaskResumeAll();                  
-                    } else {
-                        // not close enough - update speed
-                        int tempSpeedCeiling = (int)(petArea*-0.2)+1900; // arbitrary function for now
-                        int currentSpeed = speed;
-                        tempSpeedCeiling=max(tempSpeedCeiling,0); // make sure it's positive
-                        speed=min((int)speed,tempSpeedCeiling);
-                        speed=min(currentSpeed,tempSpeedCeiling);
-                    }
+                // check if ready for pickup
+                Serial2Pi.printf("Claw centered: %d\n",clawCentered);
+                Serial2Pi.printf("Pet close enough: %d\n",closeEnough);
+                Serial2Pi.printf("Angle past threshold: %d\n",anglePastThreshold);
+
+                if (clawCentered && closeEnough && anglePastThreshold) {
+                    // arm is at nearly 90 degree angle -> initiate pick up
+                    stopDrive();
+                    vTaskSuspendAll();
+                    pickUpPet();      
+                    xTaskResumeAll();   
+                } else {
+                    // not close enough - update speed
+                    int tempSpeedCeiling = (int)(-0.25*petArea+2300.0); // arbitrary function for now, decreases speed as pet draws closer
+                    int currentSpeed = speed;
+                    tempSpeedCeiling=max(tempSpeedCeiling,1000); // make sure speed is positive
+                    speed=min(currentSpeed,tempSpeedCeiling);
+                    Serial2Pi.printf("robot speed: %d\n",speed);
                 }
                 //Serial.printf("x=%.2f y=%.2f w=%.2f h=%.2f\n", pet_x, pet_y, pet_w, pet_h);
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
-        */
 }
 
 /**
@@ -789,22 +812,7 @@ void setup()
 
     if (!run) {
         Serial.begin(9600);
-        leftMotor = new Motor(0);
-        rightMotor = new Motor(1);
-        leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
-        rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
-        leftMotor->attachPins(pwmOut1, dirOut1);
-        rightMotor->attachPins(pwmOut2, dirOut2);
-        robot = new DriveMotors(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
-
-        xTaskCreate(
-            test_drive,
-            "Testing Drive",
-            4000,
-            &robot,
-            0,
-            NULL);
         /*
         CARRIAGE MVT TESTING
         carriageMotor.attachPins(carriageMotorPWM,carriageMotorDir);
@@ -812,8 +820,6 @@ void setup()
         attachInterrupt(digitalPinToInterrupt(vertClawLOW), vertClawLowPressedISR, CHANGE); // chat suggests "FALLING"
         */
 
-        /*
-        <old driving code>
         adc1_config_width(ADC_WIDTH_BIT_12);
         adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_12); // ir sensor inputs (pin 34/35)
         adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_12);
@@ -824,7 +830,6 @@ void setup()
         ledcAttachPin(pwmOut2,rightPwmChannel);
         pinMode(dirOut1,OUTPUT);
         pinMode(dirOut2,OUTPUT);
-        */
     }
 }
 
@@ -832,9 +837,10 @@ void loop()
 {
     if (!run) {
         // PUT TEST CODE HERE
-        /*
+        
         drive(speed);
-        delay(1000/pwmFreq);
+        delay(400);
+        /*
         testServo.setAngle(180);
         delay(100);
         testServo.setAngle(90);

@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <ESP32Servo.h>
+#include <hardware/CustomServo.h>
 
 HardwareSerial MySerial(0);
 double petX=0;
@@ -23,36 +24,23 @@ constexpr double horizontal_fov=62.2;
 constexpr int angleForward=90;
 volatile int speed=1600;
 constexpr int pwmChannel=0;
-constexpr int MG996RPin = 21; //pin #
+constexpr int MG996RPin = 13; //pin #
+constexpr int servoFreq = 50;
+constexpr int minDuty = 500;
+constexpr int maxDuty = 2500;
 
 //debug rotation
 bool rotationTested=false;
 
-Servo MG996R;
+CustomServo MG996R(MG996RPin,pwmChannel,angleForward,servoFreq,minDuty,maxDuty);
 uint32_t MG996Pos = 55;
 
 void resetVars() {
-    MG996Pos = 55;
+    MG996R.rotateTo(90);
     closeEnough = false;
     clawCentered = false;
     anglePastThreshold = false;
-    speed=1600;
-}
-
-int bound(int var, int minVal, int maxVal) {
-    if (minVal > maxVal) {
-        throw std::invalid_argument("minVal cannot be greater than maxVal");
-    }
-    int result = min(var, maxVal);
-    return max(result, minVal);
-}
-
-double bound(double var, double minVal, double maxVal) {
-    if (minVal > maxVal) {
-        throw std::invalid_argument("minVal cannot be greater than maxVal");
-    }
-    double result = min(var, maxVal);
-    return max(result, minVal);
+    speed=1900;
 }
 
 int servoPosToAngle(int pos) {
@@ -66,13 +54,13 @@ int angleToServoPos (int angle) {
 void rotateTurret(int angle)
 {
     int newAngle=servoPosToAngle(MG996Pos) + angle;
-    newAngle=bound(newAngle,0,180);
+    newAngle=constrain(newAngle,0,180);
     MG996Pos=angleToServoPos(newAngle);
 }
 
 double angleToCenter(double pet_x_coord) {
     double result=(pet_x_coord-(double)imgSize/2)/(double)imgSize*horizontal_fov;
-    MySerial.printf("Turret rotating, off by: %.2lf\n",result);
+    MySerial.printf("Turret off by: %.2lf\n",result);
     return result;
 }
 
@@ -83,13 +71,30 @@ void pickUpPet() {
 }
 
 void testRotation() {
+    MG996R.rotateTo(0);
+    MySerial.println("position=0");
+    delay(1500);
+
+    MG996R.rotateTo(90);
+    MySerial.println("position=90");
+    delay(1500);
+
+    MG996R.rotateTo(180);
+    MySerial.println("position=180");
+    delay(1500);
+
+    MG996R.rotateTo(90);
+    MySerial.println("position=90");
+    delay(1500);
+    
+   /*
     bool increasing=true;
-    MG996Pos = 56;
+    MG996Pos = 80;
     int count = 0;
-    while (count < 2) {
-        if (MG996Pos>=95) {
+    while (1) {
+        if (MG996Pos>=140) {
             increasing=false;
-        } else if (MG996Pos<=15) {
+        } else if (MG996Pos<=30) {
             increasing=true;
         }
 
@@ -104,54 +109,49 @@ void testRotation() {
         }
 
         ledcWrite(pwmChannel,MG996Pos);
+        Serial.println(MG996Pos);
         //MySerial.println(MG996Pos);
-        delay(10);
+        delay(60);
     }
+        */
 }
 
 void setup() {
     MySerial.begin(115200,SERIAL_8N1,3,1);
-    MG996R.setPeriodHertz(50);
-    MG996R.attach(MG996RPin,500,2500);
-    ledcSetup(pwmChannel, 50, 10); 
-    ledcAttachPin(MG996RPin,pwmChannel);
     MySerial.println("Serial starting");
+    //MG996R.setPeriodHertz(50);
+    //MG996R.attach(MG996RPin,500,2500);
+    //ledcSetup(pwmChannel, 50, 10); 
+    //ledcAttachPin(MG996RPin,pwmChannel);
+    //Serial.begin(115200);
+    //Serial.println("serial starting");
 }
 
 void loop() {
+    
     if (!rotationTested) {
         testRotation();
         rotationTested=true;
     }
     //delay(1000);
-    //MySerial.print("still running\n");
     //testRotation();
-    ledcWrite(pwmChannel,MG996Pos);
+    
+    //ledcWrite(pwmChannel,MG996Pos);
     if (MySerial.available()) {
         String line = MySerial.readStringUntil('\n');
         if (line=="[SYSTEM MESSAGE] RESET") {
             resetVars();
             //rotationTested=false;
-            MySerial.printf("System message received\n");
+            MySerial.printf("System message 'RESET' received\n");
         } else if (line.length()>1) {
             // pet in visual range AND large enough (done on pi)
             sscanf(line.c_str(), "%lf,%lf,%lf,%lf", &petX, &petY, &petW, &petH);
             MySerial.printf("ESP received: x=%.2lf y=%.2lf w=%.2lf h=%.2lf\n", petX, petY, petW, petH);
 
-            // slow down robot/initiate pick up sequence
+            // get pet area and print current angle
             double petArea = petW*petH;
-            int currentAngle = servoPosToAngle(MG996Pos);
+            int currentAngle=MG996R.getPosition();
             MySerial.printf("servo angle: %d\n",currentAngle);
-
-            //rotate turret
-            double rotate_const=1.0;
-            if (abs((int)petX-imgSize/2) > clawCenterThreshold) {
-                rotateTurret((int)(angleToCenter(petX)*rotate_const));
-                MySerial.printf("new servo angle once rotated: %d\n",servoPosToAngle(MG996Pos));
-                clawCentered=false;
-            } else {
-                clawCentered = true;
-            }
 
             //check if pet big enough for pickup
             closeEnough = petArea > areaThresholdForPickup;           
@@ -159,6 +159,16 @@ void loop() {
             // check if angle is correct (off forward direction by at least 75 deg)
             anglePastThreshold = (currentAngle < angleForward - angleThreshold ||
                                   currentAngle > angleForward + angleThreshold);
+
+            //rotate turret
+            double rotate_const=1.0;
+            if (abs((int)petX-imgSize/2) > clawCenterThreshold) {
+                MG996R.rotateBy((int)(angleToCenter(petX)*rotate_const));
+                //rotateTurret((int)(angleToCenter(petX)*rotate_const));
+                clawCentered=false;
+            } else {
+                clawCentered = true;
+            }
 
             // check if ready for pickup
             MySerial.printf("Claw centered: %d\n",clawCentered);
@@ -173,9 +183,9 @@ void loop() {
                 //xTaskResumeAll();   
             } else {
                 // not close enough - update speed
-                int tempSpeedCeiling = (int)(5000.0*exp(-0.0008*petArea)); // arbitrary function for now, decreases speed as pet draws closer
+                int tempSpeedCeiling = (int)(-0.25*petArea+2300.0); // arbitrary function for now, decreases speed as pet draws closer
                 int currentSpeed = speed;
-                tempSpeedCeiling=max(tempSpeedCeiling,100); // make sure speed is positive
+                tempSpeedCeiling=max(tempSpeedCeiling,1000); // make sure speed is positive
                 speed=min(currentSpeed,tempSpeedCeiling);
                 MySerial.printf("robot speed: %d\n",speed);
             }
