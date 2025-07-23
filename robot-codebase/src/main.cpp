@@ -39,8 +39,8 @@ int d = 0;
 int m = 0; // counts cycles since the reading last changed; more cycles = smaller d
 int q = 0; // equivalent to m_last (last previous value of m)
 int ctrl = 0;
-int dir1 = 1;
-int dir2 = 1;
+//int dir1 = 1;
+//int dir2 = 1;
 bool leftOnTape = 1;
 bool rightOnTape = 1;
 int leftVal = 0;
@@ -85,11 +85,11 @@ CustomServo MG996R(MG996RPin,carriageServoPWMChannel, 90, 50, 500, 2500);
 //uint32_t MG996RPos = 0;
 
 //  motor declarations
-Motor leftMotor(leftPwmChannel);
-Motor rightMotor(rightPwmChannel);
-IRSensor leftIRSensor(ADC1_CHANNEL_6);
-IRSensor rightIRSensor(ADC1_CHANNEL_7);
-DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+Motor* leftMotor;
+Motor* rightMotor;
+IRSensor* leftIRSensor;
+IRSensor* rightIRSensor;
+DriveMotors* robot;
 
 Motor carriageMotor(carriageHeightPWMChannel);
 
@@ -109,6 +109,7 @@ void dropPetInBasket();
 void home();
 void PCNTsetup();
 
+bool heightsForPickup[6] = {false, false, true, true, false, false}; //false = low, true = high
 
 // TEST PARAMETERS
 
@@ -168,6 +169,7 @@ float angleToCenter(float pet_x_coord) {
  */
 void drive(int avgSpeedInput)
 {
+    /*
     last_distance = distance;
     distance = distToTape();
 
@@ -204,6 +206,7 @@ void drive(int avgSpeedInput)
     Serial.println(leftSpeed);
     Serial.print("Speed right:");
     Serial.println(rightSpeed);
+    */
 }
 
 /**
@@ -262,6 +265,7 @@ void stopAllMotors()
 
 /** 
  * changes carriage height
+ * @param up, true if moving up and false if moving down
  */
 void moveCarriage(bool up) {
     while(!carriageSwitchHit) {
@@ -322,7 +326,7 @@ void home()
     DS.write(DSPos);
     MG996R.write(MG996RPos);
     */
-   
+
     // find limits of the claw
     driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 0);
     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
@@ -645,9 +649,12 @@ void idle_task(void *parameters)
 void test_drive(void *parameters) {
     DriveMotors* robot = static_cast<DriveMotors*>(parameters);
     for (;;) {
-
-        robot->drivePID(speed);
-        Serial.println("LOOP!");
+        Serial.println("before switch");
+        robot->driveLeftMotor(speed,HIGH);
+        Serial.println(leftMotor->currentDirection);
+        vTaskDelay(1000);
+        Serial.println("after switch");
+        robot->driveRightMotor(speed,LOW);
         vTaskDelay((1000/pwmFreq) / portTICK_PERIOD_MS);
     }
 }
@@ -782,13 +789,19 @@ void setup()
 
     if (!run) {
         Serial.begin(9600);
-        leftMotor.attachPins(pwmOut1, dirOut1);
-        rightMotor.attachPins(pwmOut2, dirOut2);
+        leftMotor = new Motor(0);
+        rightMotor = new Motor(1);
+        leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
+        rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
+        leftMotor->attachPins(pwmOut1, dirOut1);
+        rightMotor->attachPins(pwmOut2, dirOut2);
+        robot = new DriveMotors(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+
 
         xTaskCreate(
             test_drive,
             "Testing Drive",
-            1000,
+            4000,
             &robot,
             0,
             NULL);

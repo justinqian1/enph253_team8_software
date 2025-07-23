@@ -5,9 +5,9 @@
 #include "DriveMotors.h"
 #include "hardware/Motor.h"
 
-DriveMotors::DriveMotors(const Motor &lMotor, const Motor &rMotor, const IRSensor &lIRSensor,
-                         const IRSensor &rIRSensor) : leftMotor(lMotor), rightMotor(rMotor), leftIRSensor(lIRSensor),
-                                                      rightIRSensor(rIRSensor) {
+DriveMotors::DriveMotors(Motor* lMotor, Motor* rMotor, IRSensor* lIRSensor,
+                         IRSensor* rIRSensor) : leftMotor(*lMotor), rightMotor(*rMotor), leftIRSensor(*lIRSensor),
+                                                      rightIRSensor(*rIRSensor) {
 }
 /*
 void DriveMotors::drivePID(int speed) {

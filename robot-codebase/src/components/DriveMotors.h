@@ -19,7 +19,7 @@ public:
      * @param lIRSensor the left IR sensor
      * @param rIRSensor the right IR sensor
      */
-    DriveMotors(const Motor &lMotor, const Motor &rMotor, const IRSensor &lIRSensor, const IRSensor &rIRSensor);
+    DriveMotors(Motor *lMotor, Motor *rMotor, IRSensor *lIRSensor, IRSensor *rIRSensor);
 
     /**
      * Drives the robot with PID control, with variable parameters
@@ -59,10 +59,10 @@ protected:
     int leftMotorDirection = 1;
     int rightMotorDirection = 1;
     int currentSpeed = 0;
-    Motor leftMotor;
-    Motor rightMotor;
-    IRSensor leftIRSensor;
-    IRSensor rightIRSensor;
+    Motor &leftMotor;
+    Motor &rightMotor;
+    IRSensor &leftIRSensor;
+    IRSensor &rightIRSensor;
     int _distance = 0;
     int _last_distance = 0;
     int _qDist = 0;

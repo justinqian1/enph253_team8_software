@@ -52,9 +52,10 @@ constexpr int carriageSpeed = 2000;
 constexpr int defaultKProp = 400; // kp and kd for driving pid control
 constexpr int defaultKDeriv = 500;
 constexpr int pwmFreq = 500;
+constexpr int dir1 = 1;
+constexpr int dir2 = 0;
 
 //thresholds for pick up
-bool heightsForPickup[] = {false, false, true, true, false, false}; //false = low, true = high
 constexpr int angleThreshold=75;
 constexpr int clawCenterThreshold=20; //px from center
 constexpr double areaThresholdForPickup=5000.0;

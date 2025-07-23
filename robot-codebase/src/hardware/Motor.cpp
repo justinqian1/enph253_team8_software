@@ -7,7 +7,9 @@
 
 Motor::Motor(int pwmCh) : pwmChannel(pwmCh)
 {
-    ledcSetup(this->pwmChannel, pwmFreq, 12);
+    ledcSetup(pwmCh, pwmFreq, 12);
+    Serial.print("Motor created with channel");
+    Serial.println(pwmCh);
 }
 
 void Motor::attachPins(int pwmPin, int dirPin)
@@ -23,9 +25,11 @@ void Motor::driveMotor(int speed, int direction)
     if (direction == this->currentDirection)
     {
         ledcWrite(this->motorPWMPin, speed);
+        Serial.println("motor driving");
     } else
     {
         stopMotor();
+        Serial.println("motor direction changing");
         vTaskDelay(5 / portTICK_PERIOD_MS);
         digitalWrite(this->motorDirectionPin, direction);
         ledcWrite(this->motorPWMPin, speed);

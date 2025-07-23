@@ -60,10 +60,11 @@ class Motor : public motor_interface
      */
     int getMotorDirectionPin();
 
+    int currentDirection = 0;
+
     private:
     int motorPWMPin = 0;
     int motorDirectionPin = 0;
-    int currentDirection = 0;
     int pwmChannel;
 };
 #endif //MOTOR_H
