@@ -8,8 +8,8 @@
 class servo_interface
 {
     public:
-    virtual void setAngle(int angle);
-    virtual void setAngle(int angle, int time);
+    virtual void rotateTo(int angle);
+    virtual void rotateTo(int angle, int time);
     virtual ~servo_interface() = default;
 };
 #endif //SERVO_INTERFACE_H

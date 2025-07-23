@@ -39,7 +39,7 @@ int CustomServo::getPosition() { return this->servoPosition; }
 
 int CustomServo::getPin() { return this->servoPin; }
 
-void CustomServo::setAngle(int position)
+void CustomServo::rotateTo(int position)
 {
     position = constrain(position, 0, 180);
     int pulse_us = pulseLength(position);
@@ -48,7 +48,7 @@ void CustomServo::setAngle(int position)
     this->servoPosition = position;
 }
 
-void CustomServo::setAngle(int position, int time)
+void CustomServo::rotateTo(int position, int time)
 {
     int numTicks = abs(this->servoPosition - position);
     int tickTime = time / numTicks;
@@ -56,7 +56,7 @@ void CustomServo::setAngle(int position, int time)
     {
         while (this->servoPosition < position)
         {
-            setAngle(++this->servoPosition);
+            rotateTo(++this->servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     }
@@ -64,14 +64,18 @@ void CustomServo::setAngle(int position, int time)
     {
         while (this->servoPosition > position)
         {
-            setAngle(--this->servoPosition);
+            rotateTo(--this->servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     }
 }
 
-void CustomServo::rotate(int degrees) {
-    setAngle(this->servoPosition +  degrees);
+void CustomServo::write(int position){ 
+    rotateTo(position);
+}
+
+void CustomServo::rotateBy(int degrees) {
+    rotateTo(this->servoPosition +  degrees);
 }
 
 //PRIVATE FUNCTIONS

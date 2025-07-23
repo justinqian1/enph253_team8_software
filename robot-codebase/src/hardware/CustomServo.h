@@ -62,20 +62,25 @@ public:
      * sets the position of a servo to a specified angle
      * @param angle the position (in degrees) to set the servo to
      */
-    void setAngle(int angle) override;
+    void rotateTo(int angle) override;
 
     /**
      * sets the position of a servo to a specified angle over a time frame (used to slow down servo rotation)
      * @param position the position (in degrees) to set the servo to
      * @param time the time (in milliseconds) to turn the servo
      */
-    void setAngle(int angle, int time) override;
+    void rotateTo(int angle, int time) override;
 
+    /**
+     * alias for Servo.write() function
+     */
+    void write(int angle);
+    
     /**
      * rotates the servo a certain number of degrees, with positive being clockwise
      * @param degrees the number of degrees to rotate
      */
-    void rotate(int degrees);
+    void rotateBy(int degrees);
 
 protected:
     int servoPin;

@@ -11,8 +11,9 @@
 
 constexpr int leftPwmChannel = 6;
 constexpr int rightPwmChannel = 7;
-constexpr int carriagePWMChannel = 2;
+constexpr int carriageHeightPWMChannel = 2;
 constexpr int clawExtPWMChannel = 3;
+constexpr int carriageServoPWMChannel = 4;
 
 // ESP32 pins
 constexpr int pwmOut1 = 8; // outputs the pwm channel according to ledcAttachPin
@@ -45,6 +46,7 @@ constexpr int thresholdR = 3100;
 constexpr int maxSpeed = 2500; // set a max pwm output
 constexpr int minSpeed = 0;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
+constexpr int carriageSpeed = 2000;
 
 // for driving
 constexpr int defaultKProp = 400; // kp and kd for driving pid control
@@ -52,6 +54,7 @@ constexpr int defaultKDeriv = 500;
 constexpr int pwmFreq = 500;
 
 //thresholds for pick up
+bool heightsForPickup[] = {false, false, true, true, false, false}; //false = low, true = high
 constexpr int angleThreshold=75;
 constexpr int clawCenterThreshold=20; //px from center
 constexpr double areaThresholdForPickup=5000.0;

@@ -26,8 +26,10 @@ TaskHandle_t idle_handle = nullptr;
 
 HardwareSerial Serial2Pi(0); // for UART 0
 
-// changing vars
+// robot properties/location
 volatile int speed = 1900;    // average speed
+volatile bool carriageHigh = false; // true if high, false if low
+int petsPickedUp = 0;
 
 // PID vars
 int distance = 0; // right = positive
@@ -65,6 +67,9 @@ int rotaryCounter = 0;
 int16_t rotaryMax = 0;
 int16_t rotaryMin = 0;
 
+// for limit switches
+volatile bool carriageSwitchHit = false;
+
 // servos
 
 // for closing the claw
@@ -75,10 +80,9 @@ uint32_t SG90Pos = 0;
 Servo DS;
 uint32_t DSPos = 0;
 
-// for rotating claw
-Servo MG996R;
-uint32_t MG996RPos = 0;
-CustomServo testServo(21, 0);
+// for rotating turret
+CustomServo MG996R(MG996RPin,carriageServoPWMChannel, 90, 50, 500, 2500);
+//uint32_t MG996RPos = 0;
 
 //  motor declarations
 Motor leftMotor(leftPwmChannel);
@@ -86,6 +90,8 @@ Motor rightMotor(rightPwmChannel);
 IRSensor leftIRSensor(ADC1_CHANNEL_6);
 IRSensor rightIRSensor(ADC1_CHANNEL_7);
 DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+
+Motor carriageMotor(carriageHeightPWMChannel);
 
 // function declarations
 int distToTape();
@@ -96,8 +102,10 @@ void stopMotor(int motorPWM);
 void driveReverse(int avgSpeedInput);
 void stopDrive();
 void stopAllMotors();
-void rotateTurret(int pos);
+void rotateTurretBy(int pos);
+void rotateTurretTo(int pos);
 void pickUpPet();
+void dropPetInBasket();
 void home();
 void PCNTsetup();
 
@@ -249,31 +257,41 @@ void stopAllMotors()
     ledcWrite(leftPwmChannel, 0);
     ledcWrite(rightPwmChannel, 0);
     ledcWrite(clawExtPWMChannel, 0);
-    ledcWrite(carriagePWMChannel, 0);
+    ledcWrite(carriageHeightPWMChannel, 0);
 }
 
-/**
- * rotates the turret (attached to the MG996R servo) by a specific amount
- * @param angle, the angle to rotate by
+/** 
+ * changes carriage height
  */
-void rotateTurret(int angle) //NEEDS UPDATING
-{
-    int newAngle=MG996R.read() + angle;
-    newAngle=min(newAngle,180);
-    newAngle=max(newAngle,0);
-    MG996R.write(newAngle);
+void moveCarriage(bool up) {
+    while(!carriageSwitchHit) {
+        carriageMotor.driveMotor(carriageSpeed,up);
+    }
 }
 
 /**
  * picks up pet
  */
 void pickUpPet() {
+    if (carriageHigh != heightsForPickup[petsPickedUp]) {
+        moveCarriage(heightsForPickup[petsPickedUp]);
+    }
     /*
-    line up claw one last time
     extend claw
     receive input from hall effect
     close claw
-    lift claw if not already lifted
+    */
+    sleep(1);
+    petsPickedUp++;
+    Serial2Pi.printf("Pet picked up!\n");
+    return dropPetInBasket(); // START DROP SEQUENCE
+}
+
+void dropPetInBasket() {
+    if (!carriageHigh) {
+        moveCarriage(true); // moves carriage up if it's low
+    }
+    /*
     rotate turret
     retract claw
     open claw
@@ -281,7 +299,6 @@ void pickUpPet() {
     extend claw
     rotate claw/lower claw depending on next pickup location
     */
-    sleep(3);
 }
 
 /**
@@ -296,6 +313,7 @@ void home()
      */
 
     uint32_t switchHit;
+    /*
     SG90Pos = 0;
     DSPos = 0;
     MG996RPos = 0;
@@ -303,7 +321,8 @@ void home()
     SG90.write(SG90Pos);
     DS.write(DSPos);
     MG996R.write(MG996RPos);
-
+    */
+   
     // find limits of the claw
     driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 0);
     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
@@ -328,17 +347,17 @@ void home()
     }
     stopMotor(clawExtPWMChannel);
 
-    driveMotor(carriagePWMChannel, carriageMotorDir, homeSpeed, 0);
+    driveMotor(carriageHeightPWMChannel, carriageMotorDir, homeSpeed, 0);
     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
     if (switchHit == 1)
     {
-        stopMotor(carriagePWMChannel);
+        stopMotor(carriageHeightPWMChannel);
     }
     else if (switchHit == 2)
     {
-        driveMotor(carriagePWMChannel, carriageMotorDir, homeSpeed, 1);
+        driveMotor(carriageHeightPWMChannel, carriageMotorDir, homeSpeed, 1);
         xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-        stopMotor(carriagePWMChannel);
+        stopMotor(carriageHeightPWMChannel);
     }
 }
 
@@ -391,6 +410,8 @@ void IRAM_ATTR startButtonPressedISR()
 
 void IRAM_ATTR vertClawLowPressedISR()
 {
+    carriageSwitchHit = true;
+    carriageHigh = false;
     BaseType_t hpw = pdFALSE;
     xTaskNotifyFromISR(home_handle, 0x01, eSetBits, &hpw);
     portYIELD_FROM_ISR(&hpw);
@@ -398,6 +419,8 @@ void IRAM_ATTR vertClawLowPressedISR()
 
 void IRAM_ATTR vertClawHighPressedISR()
 {
+    carriageSwitchHit = true;
+    carriageHigh = true;
     BaseType_t hpw = pdFALSE;
     xTaskNotifyFromISR(home_handle, 0x02, eSetBits, &hpw);
     portYIELD_FROM_ISR(&hpw);
@@ -658,8 +681,8 @@ void setup()
         ledcAttachPin(pwmOut1, leftPwmChannel);
         ledcAttachPin(pwmOut2, rightPwmChannel); // both motors controlled by same pwm channel
 
-        ledcSetup(carriagePWMChannel, 250, 12);
-        ledcAttachPin(carriageMotorPWM, carriagePWMChannel);
+        ledcSetup(carriageHeightPWMChannel, 250, 12);
+        ledcAttachPin(carriageMotorPWM, carriageHeightPWMChannel);
 
         ledcSetup(clawExtPWMChannel, 250, 12);
         ledcAttachPin(clawExtMotorPWM, clawExtPWMChannel);
@@ -755,13 +778,9 @@ void setup()
 
         DS.setPeriodHertz(50);
         DS.attach(DSPin, 500, 2400);
-
-        MG996R.setPeriodHertz(50);
-        MG996R.attach(MG996RPin, 500, 2400);
     }
 
     if (!run) {
-        //CustomServo testServo(21, 0);
         Serial.begin(9600);
         leftMotor.attachPins(pwmOut1, dirOut1);
         rightMotor.attachPins(pwmOut2, dirOut2);
@@ -774,6 +793,14 @@ void setup()
             0,
             NULL);
         /*
+        CARRIAGE MVT TESTING
+        carriageMotor.attachPins(carriageMotorPWM,carriageMotorDir);
+        pinMode(vertClawLOW, INPUT_PULLUP);
+        attachInterrupt(digitalPinToInterrupt(vertClawLOW), vertClawLowPressedISR, CHANGE); // chat suggests "FALLING"
+        */
+
+        /*
+        <old driving code>
         adc1_config_width(ADC_WIDTH_BIT_12);
         adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_12); // ir sensor inputs (pin 34/35)
         adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_12);
