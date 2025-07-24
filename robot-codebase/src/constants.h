@@ -69,4 +69,15 @@ constexpr int pwmChannel=0;
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
 
+// hall sensor 
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
+#define HALL_SENSOR_PIN 35
+#define HALL_VOLTAGE_REF 3.3
+#define MAGNET_THRESHOLD_VOLTAGE 1.5
+
+#endif //PINASSIGNMENTS_H
+
+
 #endif //PINASSIGNMENTS_H
