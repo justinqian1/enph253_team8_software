@@ -7,23 +7,20 @@
 
 
 HallSensor::HallSensor(int pin) : hallPin(pin) {
-      pinMode(HALL_SENSOR_PIN, INPUT);
-  analogReadResolution(12); // Set ADC resolution to 12 bits
+    pinMode(pin, INPUT);
+    analogReadResolution(12); // Set ADC resolution to 12 bits
 }
 
 /* Read voltage from the analog pin (scaled from raw ADC)*/
-float HallSensor::readVoltage() {
-    int sensorValue = analogRead(HALL_SENSOR_PIN); /* Read raw analog value*/
-    float voltage = sensorValue * (HALL_VOLTAGE_REF / 4095.0); /* Convert to voltage*/
+double HallSensor::readVoltage() {
+    int sensorValue = adc1_get_raw(ADC1_CHANNEL_0); // pin 36
+    double voltage = sensorValue * (hallVoltageRef / 4095.0); /* Convert to voltage*/
     return voltage;
 }
 
 /* Return true if voltage indicates magnetic field presence*/
-bool HallSensor::magnetDetected(float voltage) {
-      if (voltage < MAGNET_THRESHOLD_VOLTAGE) { 
-    return true; 
-  } 
-  return false; 
+bool HallSensor::magnetDetected(double voltage) {
+    return voltage < magnetThresholdVoltage;
 }
 /*
 /* Read voltage, check for magnet, and format a log message*/

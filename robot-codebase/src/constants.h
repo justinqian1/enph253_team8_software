@@ -2,15 +2,15 @@
 // Created by bram on 20/07/25.
 //
 #include "driver/pcnt.h"
-#ifndef PINASSIGNMENTS_H
-#define PINASSIGNMENTS_H
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
 
 #include "driver/pcnt.h"
 
 // PWM Channels
 
 constexpr int leftPwmChannel = 0;
-constexpr int rightPwmChannel = 0;
+constexpr int rightPwmChannel = 1;
 constexpr int carriageHeightPWMChannel = 2;
 constexpr int clawExtPWMChannel = 3;
 constexpr int carriageServoPWMChannel = 4;
@@ -28,8 +28,8 @@ constexpr int MG996RPin = 13;
 constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
-constexpr int startSwitch = 39;
-constexpr int vertClawLOW = 26;
+constexpr int startSwitch = 26;
+constexpr int vertClawLOW = 39;
 constexpr int vertClawHIGH = 32;
 constexpr int horiClawLOW = 33;
 constexpr int horiClawHIGH = 27;
@@ -39,18 +39,19 @@ constexpr int clawExtMotorPWM =  8;
 constexpr int clawExtMotorDir = 7;
 constexpr int rotaryEncoderPinA = 2;
 constexpr int rotaryEncoderPinB = 15;
+constexpr int hallSensorPin = 36;
 
 // constants
 constexpr int thresholdL = 1300;
 constexpr int thresholdR = 1800;
-constexpr int maxSpeed = 2500; // set a max pwm output
+constexpr int maxSpeed = 4000; // set a max pwm output
 constexpr int minSpeed = 0;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 constexpr int carriageSpeed = 2000;
 
 // for driving
-constexpr int defaultKProp = 0; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 0;
+constexpr int defaultKProp = 400; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 450;
 constexpr int pwmFreq = 500;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
@@ -75,14 +76,7 @@ constexpr int carriageForwardPos=90;
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
 
 // hall sensor 
-#ifndef CONSTANTS_H
-#define CONSTANTS_H
-
-#define HALL_SENSOR_PIN 35
-#define HALL_VOLTAGE_REF 3.3
-#define MAGNET_THRESHOLD_VOLTAGE 1.5
-
-#endif //PINASSIGNMENTS_H
-
+constexpr double hallVoltageRef = 3.3;
+constexpr double magnetThresholdVoltage = 1.5;
 
 #endif //PINASSIGNMENTS_H

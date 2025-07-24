@@ -45,6 +45,19 @@ public:
      */
     CustomServo(int pin, int channel, int position, int period, unsigned long min, unsigned long max);
 
+        /**
+     * creates a CustomServo object with a wider variety of parameters
+     * @param pin the pin to which this servo is assigned
+     * @param channel the PWM channel assigned to this servo
+     * @param position the initial position of this servo
+     * @param hertz the period used for this servo
+     * @param min the minimum pulse length in microseconds
+     * @param max the maximum pulse length in microseconds
+     * @param multiplier the amount the rotation is multiplied by, e.g. by belt drive
+     */
+    CustomServo(int pin, int channel, int position, int period, unsigned long min, unsigned long max, double multiplier);
+
+
     /**
      * returns the pin assignment of this servo
      * @return the pin assigned to this servo
@@ -89,6 +102,7 @@ protected:
     static constexpr int maxDuty = (1 << 16) - 1;
     unsigned long minPulse;
     unsigned long maxPulse;
+    double rotationMultiplier;
     /**
      * Private function that calculate the length of a pulse required to get to a certain position, in microseconds
      * @param pos the position to calculate the pulse for
@@ -102,5 +116,10 @@ protected:
      * @return a double percentage that represents the % duty cycle
      */
     double dutyCycle(int length);
+
+    /**
+     * calculates value to write to ledc given a position, taking into account the rotation multiplier
+     */
+    int posToLedcWrite(int pos);
 };
 #endif //SERVO_H

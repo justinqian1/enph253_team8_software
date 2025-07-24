@@ -32,11 +32,11 @@ constexpr int maxDuty = 2500;
 //debug rotation
 bool rotationTested=false;
 
-CustomServo MG996R(MG996RPin,pwmChannel,angleForward,servoFreq,minDuty,maxDuty);
+CustomServo MG996R(MG996RPin,pwmChannel,angleForward,servoFreq,minDuty,maxDuty, 1.316);
 uint32_t MG996Pos = 55;
 
 void resetVars() {
-    MG996R.rotateTo(90);
+    MG996R.rotateTo(120);
     closeEnough = false;
     clawCentered = false;
     anglePastThreshold = false;
@@ -71,22 +71,28 @@ void pickUpPet() {
 }
 
 void testRotation() {
-    MG996R.rotateTo(0);
-    MySerial.println("position=0");
-    delay(1500);
-
-    MG996R.rotateTo(90);
-    MySerial.println("position=90");
-    delay(1500);
-
-    MG996R.rotateTo(180);
-    MySerial.println("position=180");
-    delay(1500);
-
-    MG996R.rotateTo(90);
-    MySerial.println("position=90");
-    delay(1500);
+    //MG996R.rotateTo(120);
     
+        MG996R.rotateTo(120);
+        MySerial.println("position set to 120");
+        delay(1500);
+
+        MG996R.rotateBy(90);
+        MySerial.println("position should be 210");
+        delay(1500);
+
+        MG996R.rotateBy(-90);
+        MySerial.println("position should be 120");
+        delay(1500);
+
+        MG996R.rotateBy(-90);
+        MySerial.println("position should be 30");
+        delay(1500);
+
+        MG996R.rotateBy(90);
+        MySerial.println("position should be 120");
+        MySerial.println("test ended");
+        
    /*
     bool increasing=true;
     MG996Pos = 80;
@@ -130,8 +136,8 @@ void setup() {
 void loop() {
     
     if (!rotationTested) {
-        testRotation();
-        rotationTested=true;
+       testRotation();
+       rotationTested=true;
     }
     //delay(1000);
     //testRotation();

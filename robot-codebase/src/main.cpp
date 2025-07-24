@@ -27,7 +27,7 @@ TaskHandle_t idle_handle = nullptr;
 HardwareSerial Serial2Pi(0); // for UART 0
 
 // robot properties/location
-volatile int speed = 1900;    // average speed
+volatile int speed = 2500;    // average speed
 volatile bool carriageHigh = false; // true if high, false if low
 int petsPickedUp = 0;
 
@@ -277,7 +277,12 @@ void stopAllMotors()
  */
 void moveCarriage(bool up) {
     while(!carriageSwitchHit) {
-        carriageMotor.driveMotor(carriageSpeed,up);
+        //carriageMotor.driveMotor(carriageSpeed,up);
+        Serial.println("Moving carriage");
+        delay(200);
+    }
+    if (carriageSwitchHit) {
+        Serial.println("Carriage switch pressed, carriage no longer moving");
     }
 }
 
@@ -812,7 +817,7 @@ void setup()
 
     if (!run) {
         Serial.begin(9600);
-
+        Serial.println("Serial starting");
         /*
         CARRIAGE MVT TESTING
         carriageMotor.attachPins(carriageMotorPWM,carriageMotorDir);
@@ -830,24 +835,23 @@ void setup()
         ledcAttachPin(pwmOut2,rightPwmChannel);
         pinMode(dirOut1,OUTPUT);
         pinMode(dirOut2,OUTPUT);
+
+        // pinMode(vertClawLOW,INPUT_PULLUP);
+        // attachInterrupt(digitalPinToInterrupt(vertClawLOW), vertClawLowPressedISR, RISING);
     }
 }
 
 void loop()
 {
+    // moveCarriage(true);
+    // carriageSwitchHit=false;
+    // Serial.println("resetting");
+    // delay(10);
     if (!run) {
         // PUT TEST CODE HERE
-        
+
         drive(speed);
-        delay(400);
-        /*
-        testServo.setAngle(180);
-        delay(100);
-        testServo.setAngle(90);
-        delay(100);
-        testServo.setAngle(0);
-        delay(100);
-        */
+        delay(1000/pwmFreq);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler
