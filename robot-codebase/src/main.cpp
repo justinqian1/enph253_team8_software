@@ -27,7 +27,7 @@ TaskHandle_t idle_handle = nullptr;
 HardwareSerial Serial2Pi(0); // for UART 0
 
 // robot properties/location
-volatile int speed = 3000;    // average speed
+volatile int speed = defaultSpeed;    // average speed
 volatile bool carriageHigh = false; // true if high, false if low
 int petsPickedUp = 0;
 
@@ -70,16 +70,13 @@ int16_t rotaryMin = 0;
 // for limit switches
 volatile bool carriageSwitchHit = false;
 volatile bool clawFullyExtended = false;
+volatile bool clawFullyRetracted = false;
 
 // servos
 
 // for closing the claw
-Servo SG90;
-uint32_t SG90Pos = 0;
-
-// for lifting the basket
-Servo DS;
-uint32_t DSPos = 0;
+CustomServo SG90(SG90Pin, clawClosingPWMChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
+// uint32_t SG90Pos = 0;
 
 // for rotating turret
 CustomServo MG996R(MG996RPin,carriageServoPWMChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty);
@@ -92,7 +89,7 @@ IRSensor* leftIRSensor;
 IRSensor* rightIRSensor;
 DriveMotors* robot;
 
-Motor carriageMotor(carriageHeightPWMChannel);
+//Motor carriageMotor(carriageHeightPWMChannel);
 
 // function declarations
 void resetVars();
@@ -108,6 +105,7 @@ void home();
 void rotaryEncoderSetup();
 
 bool heightsForPickup[6] = {false, false, true, true, false, false}; //false = low, true = high
+bool pickupSide[6] = {false, true, true, true, true, false}; // false = left, true = right
 double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in inches from tape
 
 // TEST PARAMETERS
@@ -314,11 +312,27 @@ void moveCarriage(bool up) {
 
 void extendClaw (bool outwards) {
     if (outwards) {
+        Serial.println("Claw extending");
         while (!clawFullyExtended) {
+            clawFullyRetracted = false;
             driveMotor(clawExtPWMChannel,clawExtMotorDir, clawExtSpeed, 1);
         }
     } else {
-        
+        Serial.println("Claw retracting");
+        while (!clawFullyRetracted) {
+            clawFullyExtended = false;
+            driveMotor(clawExtPWMChannel,clawExtMotorDir, clawExtSpeed, 0);
+        }
+    }
+}
+
+void closeClaw(bool close) {
+    if (close) {
+        SG90.rotateTo(clawClosedPos);
+        Serial.println("claw closing");
+    } else {
+        SG90.rotateTo(clawOpenPos);
+        Serial.println("claw opening");
     }
 }
 
@@ -329,12 +343,10 @@ void pickUpPet() {
     if (carriageHigh != heightsForPickup[petsPickedUp]) {
         moveCarriage(heightsForPickup[petsPickedUp]);
     }
-    /*
-    extend claw
-    receive input from hall effect
-    close claw
-    */
-    sleep(1);
+    extendClaw(true);
+    // receive input from hall effect
+    closeClaw(true);
+    delay(500);
     petsPickedUp++;
     Serial2Pi.printf("Pet picked up!\n");
     return dropPetInBasket(); // START DROP SEQUENCE
@@ -344,14 +356,31 @@ void dropPetInBasket() {
     if (!carriageHigh) {
         moveCarriage(true); // moves carriage up if it's low
     }
-    /*
-    rotate turret
-    retract claw
-    open claw
-    pause
-    extend claw
-    rotate claw/lower claw depending on next pickup location
-    */
+    
+    //rotate to max angle
+    if (MG996R.getPosition() > carriageForwardPos) {
+        Serial.println("Rotating to right side to drop pet");
+        MG996R.rotateTo(carriageMaxRightPos);
+    } else {
+        Serial.println("Rotating to left side to drop pet");
+        MG996R.rotateTo(carriageMaxLeftPos);
+    }
+
+    extendClaw(false); // retract claw
+    closeClaw(false); // open claw
+    delay(1000); // give time to drop pet
+    extendClaw(true); // re extend claw
+    prepareForNextPickup();
+}
+
+void prepareForNextPickup() {
+    if (pickupSide[petsPickedUp]) { //next pickup is at right side
+        MG996R.rotateTo(carriageForwardPos+45);
+    } else { // left side
+        MG996R.rotateTo(carriageForwardPos-45);
+    }
+
+    moveCarriage(heightsForPickup[petsPickedUp]);
 }
 
 /**
@@ -428,7 +457,7 @@ void rotaryEncoderSetup()
         .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
         .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
         .counter_h_lim = 1000, // High limit (for overflow check)
-        .counter_l_lim = -1000,      // Low limit (optional)
+        .counter_l_lim = 0,      // Low limit (optional)
         .unit = PCNT_UNIT,
         .channel = PCNT_CHANNEL_0,
     };
@@ -478,6 +507,10 @@ void IRAM_ATTR clawFullExtensionPressedISR()
     // BaseType_t hpw = pdFALSE;
     // xTaskNotifyFromISR(home_handle, 0x03, eSetBits, &hpw);
     // portYIELD_FROM_ISR(&hpw);
+}
+
+void IRAM_ATTR clawFullRetractionPressedISR() {
+    clawFullyRetracted = true;
 }
 
 // freeRTOS tasks
@@ -695,29 +728,29 @@ void setup()
             5,           // priority
             &idle_handle // task handle
         );
-
-        // Servo setups
-        SG90.setPeriodHertz(50);
-        SG90.attach(SG90Pin, 500, 2400);
-
-        DS.setPeriodHertz(50);
-        DS.attach(DSPin, 500, 2400);
     }
 
     if (!run) {
         Serial.begin(9600);
         Serial.println("Serial starting");
-        //rotaryEncoderSetup();
-        // CARRIAGE MVT TESTING
-        // attachMotorPins(carriageHeightPWMChannel, carriageMotorPWM,carriageMotorDir);
+        rotaryEncoderSetup();
+
+        // carriage mvt limit switches
         // pinMode(carriageLOW, INPUT_PULLUP);
         // pinMode(carriageHIGH, INPUT_PULLUP);
-        // attachInterrupt(digitalPinToInterrupt(carriageLOW), carriageLowPressedISR, RISING); // chat suggests "FALLING"
-        // attachInterrupt(digitalPinToInterrupt(carriageHIGH), carriageHighPressedISR, RISING); // chat suggests "FALLING"
+        // attachInterrupt(digitalPinToInterrupt(carriageLOW), carriageLowPressedISR, RISING); 
+        // attachInterrupt(digitalPinToInterrupt(carriageHIGH), carriageHighPressedISR, RISING); 
+
+        // claw extension limit switches
+        pinMode(clawExtendedSwitch, INPUT_PULLUP);
+        pinMode(clawRetractedSwitch, INPUT_PULLUP);
+        attachInterrupt(digitalPinToInterrupt(clawExtendedSwitch), clawFullExtensionPressedISR, RISING); 
+        attachInterrupt(digitalPinToInterrupt(clawRetractedSwitch), clawFullRetractionPressedISR, RISING);
+
 
         // DRIVING
-        configIRSensors();
-        attachDriveMotorPins();
+        // configIRSensors();
+        // attachDriveMotorPins();
     }
 }
 
@@ -744,7 +777,7 @@ void loop()
 
         //driving code
         drive(speed);
-        delay(500);
+        delay(2);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler

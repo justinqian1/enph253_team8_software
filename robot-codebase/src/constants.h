@@ -34,8 +34,8 @@ constexpr int TXPin = 1; // same as above
 constexpr int startSwitch = 26;
 constexpr int carriageLOW = 39;
 constexpr int carriageHIGH = 32;
-constexpr int horiClawLOW = 33;
-constexpr int horiClawHIGH = 27;
+constexpr int clawExtendedSwitch = 33;
+constexpr int clawRetractedSwitch = 27;
 constexpr int carriageMotorPWM = 5;
 constexpr int carriageMotorDir = 10;
 constexpr int clawExtMotorPWM =  8;
@@ -46,15 +46,16 @@ constexpr int extraGND = 4;
 constexpr int hallSensorPin = 36;
 
 // constants
-constexpr int thresholdL = 1300;
-constexpr int thresholdR = 1800;
-constexpr int maxSpeed = 4000; // set a max pwm output
-constexpr int minSpeed = 0;    // set a min pwm output
+constexpr int thresholdL = 1000;
+constexpr int thresholdR = 1600;
+constexpr int defaultSpeed = 1500;
+constexpr int maxSpeed = 3000; // set a max pwm output
+constexpr int minSpeed = 500;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
-constexpr int defaultKProp = 500; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 550;
+constexpr int defaultKProp = 450; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 500;
 constexpr int pwmFreq = 500;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
@@ -81,6 +82,9 @@ constexpr float encoderCountToInches = 0.05;
 constexpr int clawExtSpeed=2000;
 constexpr int carriageSpeed = 2000;
 
+// SG90 (claw closing)
+constexpr int clawOpenPos = 0;
+constexpr int clawClosedPos = 90;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
