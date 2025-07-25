@@ -22,7 +22,7 @@ class Motor : public motor_interface
      * @param pwmPin the pin assigned to the motor PWM
      * @param dirPin the pin assigned to the motor direction
      */
-    void attachPins(int pwmPin, int dirPin);
+    void attachPins(int pwmCh, int pwmPin, int dirPin);
 
     /**
      * drives the motor with a specified speed and direction

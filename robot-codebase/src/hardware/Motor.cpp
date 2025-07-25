@@ -12,11 +12,13 @@ Motor::Motor(int pwmCh) : pwmChannel(pwmCh)
     Serial.println(pwmCh);
 }
 
-void Motor::attachPins(int pwmPin, int dirPin)
+void Motor::attachPins(int pwmCh, int pwmPin, int dirPin)
 {
     this->motorPWMPin = pwmPin;
     this->motorDirectionPin = dirPin;
+    ledcSetup(pwmCh, pwmFreq, 12);
     ledcAttachPin(this->motorPWMPin, pwmChannel);
+    pinMode(dirPin, OUTPUT);
     digitalWrite(this->motorDirectionPin, HIGH);
 }
 

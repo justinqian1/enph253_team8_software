@@ -27,7 +27,7 @@ TaskHandle_t idle_handle = nullptr;
 HardwareSerial Serial2Pi(0); // for UART 0
 
 // robot properties/location
-volatile int speed = 2500;    // average speed
+volatile int speed = 3000;    // average speed
 volatile bool carriageHigh = false; // true if high, false if low
 int petsPickedUp = 0;
 
@@ -69,6 +69,7 @@ int16_t rotaryMin = 0;
 
 // for limit switches
 volatile bool carriageSwitchHit = false;
+volatile bool clawFullyExtended = false;
 
 // servos
 
@@ -94,22 +95,20 @@ DriveMotors* robot;
 Motor carriageMotor(carriageHeightPWMChannel);
 
 // function declarations
+void resetVars();
 int distToTape();
 double angleToCenter(double petX);
-void driveMotor(int motorPWM, int directionPin, int speed, int direction);
+void driveMotor(int pwmCh, int dirPin, int speed, int dir);
+void switchMotorDirection(int pwmCh, int dirPin, int speed, int newDir);
 void drive(int avgSpeedInput);
-void stopMotor(int motorPWM);
-void driveReverse(int avgSpeedInput);
-void stopDrive();
-void stopAllMotors();
-void rotateTurretBy(int pos);
-void rotateTurretTo(int pos);
+void moveCarriage(bool up);
 void pickUpPet();
 void dropPetInBasket();
 void home();
-void PCNTsetup();
+void rotaryEncoderSetup();
 
 bool heightsForPickup[6] = {false, false, true, true, false, false}; //false = low, true = high
+double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in inches from tape
 
 // TEST PARAMETERS
 
@@ -196,79 +195,97 @@ void drive(int avgSpeedInput)
     ctrl = (int)(p + d);
     m++;
 
-    digitalWrite(dirOut1, dir1);
-    digitalWrite(dirOut2, dir2);
     leftSpeed = constrain(avgSpeedInput - ctrl, minSpeed, maxSpeed);
     rightSpeed = constrain(avgSpeedInput + ctrl, minSpeed, maxSpeed);
+
+    /* 
+    // Greg bridge
+    digitalWrite(dirOut1, dir1);
+    digitalWrite(dirOut2, dir2); 
     ledcWrite(leftPwmChannel,leftSpeed);
     ledcWrite(rightPwmChannel,rightSpeed);
-    //driveMotor(leftPwmChannel, dirOut1, leftSpeed, 1);
-    //driveMotor(rightPwmChannel, dirOut2, rightSpeed, 1);
+    */
+
+    //Andre bridge
+    ledcWrite(leftPwmChannelFwd, leftSpeed);
+    ledcWrite(rightPwmChannelFwd, rightSpeed);
+    ledcWrite(leftPwmChannelBwd, 0);
+    ledcWrite(rightPwmChannelBwd, 0);
+
     leftVal = adc1_get_raw(ADC1_CHANNEL_6);
     rightVal = adc1_get_raw(ADC1_CHANNEL_7);
 
     Serial.print("Left reading:");
-    Serial.println(leftVal);
-    Serial.print("Right reading:");
+    Serial.print(leftVal);
+    Serial.print("   Right reading:");
     Serial.println(rightVal);
-    Serial.print("Speed left:");
-    Serial.println(leftSpeed);
-    Serial.print("Speed right:");
-    Serial.println(rightSpeed);
+    // Serial.print("Speed left:");
+    // Serial.println(leftSpeed);
+    // Serial.print("Speed right:");
+    // Serial.println(rightSpeed);
 }
 
-/**
- * driveReverse - drives the robot in reverse in a straight line without PID control
- *
- * @avgSpeedInput the speed at which to drive backwards
- */
-void driveReverse(const int avgSpeedInput)
-{
-    driveMotor(leftPwmChannel, dirOut1, avgSpeedInput, 0);
-    driveMotor(rightPwmChannel, dirOut2, avgSpeedInput, 0);
+void attachMotorPins(int pwmChannel, int pwmPin, int dirPin) {
+    ledcSetup(pwmChannel,pwmFreq,12);
+    ledcAttachPin(pwmPin,pwmChannel);
+    pinMode(dirPin,OUTPUT);
 }
 
-/**
- * stopDrive - stops both motors entirely
- *              no guarantees about stopping motion of robot entirely (backlash, momentum, etc...)
- */
-void stopDrive()
-{
-    ledcWrite(leftPwmChannel, 0);
-    ledcWrite(rightPwmChannel, 0);
+void attachAndreMotorPins(int pwmCh1, int pwmCh2, int pwmPin1, int pwmPin2) {
+    ledcSetup(pwmCh1, pwmFreq, 12);
+    ledcSetup(pwmCh2, pwmFreq, 12);
+    ledcAttachPin(pwmPin1, pwmCh1);
+    ledcAttachPin(pwmPin2, pwmCh2);
 }
 
-/**
- * Drives a specific motor and a given speed in a given direction, as opposed to drive which drives both wheel motors
- * @param motorPWM the PWM channel for the motor
- * @param directionPin the direction pin for the motor
- * @param direction the direction to drive, with 1 being right and 0 being left
- * @param speed the speed to drive the motor, in range 0 - 4095
- */
-void driveMotor(const int motorPWM, const int directionPin, const int speed, const int direction)
-{
-    digitalWrite(directionPin, direction);
-    ledcWrite(motorPWM, speed);
+void attachDriveMotorPins() {
+    ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
+    ledcSetup(leftPwmChannelBwd, pwmFreq, 12);
+    ledcAttachPin(pwmOut1, leftPwmChannelFwd);
+    ledcAttachPin(dirOut1, leftPwmChannelBwd);
+
+    ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
+    ledcSetup(rightPwmChannelBwd, pwmFreq, 12);
+    ledcAttachPin(dirOut2, rightPwmChannelFwd);
+    ledcAttachPin(pwmOut2, rightPwmChannelBwd);
 }
 
-/**
- * Stops a specific motor
- * @param motorPWM the PWM channel for the motor
- */
-void stopMotor(const int motorPWM)
-{
-    ledcWrite(motorPWM, 0);
+void configIRSensors() {
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_12); // ir sensor inputs (pin 34/35)
+    adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_12);
+
 }
 
-/**
- * Stops all motors (generally for testing purposes)
- */
-void stopAllMotors()
-{
-    ledcWrite(leftPwmChannel, 0);
-    ledcWrite(rightPwmChannel, 0);
-    ledcWrite(clawExtPWMChannel, 0);
-    ledcWrite(carriageHeightPWMChannel, 0);
+void driveMotor(int pwmCh, int dirPin, int speed, int dir) {
+    ledcWrite(pwmCh, speed);
+    digitalWrite(dirPin,dir);
+}
+
+void driveAndreMotor(int pwmCh1, int pwmCh2, int speed, int dir) {
+    if (dir==1) {
+        ledcWrite(pwmCh1, speed);
+    } else {
+        ledcWrite(pwmCh2, speed);
+    }
+}
+
+void stopMotor(int pwmCh) {
+    ledcWrite(pwmCh,0);
+}
+
+void stopDrive() {
+    stopMotor(leftPwmChannelFwd);
+    stopMotor(leftPwmChannelBwd);
+    stopMotor(rightPwmChannelFwd);
+    stopMotor(rightPwmChannelFwd);
+}
+
+void switchMotorDirection(int pwmCh, int dirPin, int speed, int newDir) {
+    stopMotor(pwmCh);
+    delay(5);
+    digitalWrite(dirPin, newDir);
+    ledcWrite(pwmCh,speed);
 }
 
 /** 
@@ -277,12 +294,31 @@ void stopAllMotors()
  */
 void moveCarriage(bool up) {
     while(!carriageSwitchHit) {
-        //carriageMotor.driveMotor(carriageSpeed,up);
-        Serial.println("Moving carriage");
-        delay(200);
+        driveMotor(carriageHeightPWMChannel,carriageMotorDir,carriageSpeed,up);
+        if (up) {
+            Serial.println("Moving carriage upwards");
+        } else {
+            Serial.println("Moving carriage downwards");
+        }
+        delay(400);
     }
     if (carriageSwitchHit) {
-        Serial.println("Carriage switch pressed, carriage no longer moving");
+        if (carriageHigh) {
+            Serial.println("Carriage hit high switch");
+        } else {
+            Serial.println("Carriage hit low switch");
+        }
+        
+    }
+}
+
+void extendClaw (bool outwards) {
+    if (outwards) {
+        while (!clawFullyExtended) {
+            driveMotor(clawExtPWMChannel,clawExtMotorDir, clawExtSpeed, 1);
+        }
+    } else {
+        
     }
 }
 
@@ -382,20 +418,22 @@ void home()
  * sets up the PCNT counter using the two rotaryEncoderPins, an overflow limit of 10000,
  * and a filter time of  1000 clock cycles.
  */
-void PCNTSetup()
+void rotaryEncoderSetup()
 {
     pcnt_config_t pcnt_config = {
         .pulse_gpio_num = rotaryEncoderPinA, // Only pulse pin (A)
         .ctrl_gpio_num = rotaryEncoderPinB, // Added direction pin B
-        .lctrl_mode = PCNT_MODE_KEEP,
+        .lctrl_mode = PCNT_MODE_REVERSE,
         .hctrl_mode = PCNT_MODE_KEEP,
         .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
         .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
-        .counter_h_lim = 10000, // High limit (for overflow check)
-        .counter_l_lim = 0,      // Low limit (optional)
+        .counter_h_lim = 1000, // High limit (for overflow check)
+        .counter_l_lim = -1000,      // Low limit (optional)
         .unit = PCNT_UNIT,
         .channel = PCNT_CHANNEL_0,
     };
+    pinMode(extraGND,OUTPUT);
+    digitalWrite(extraGND,LOW);
 
     pcnt_unit_config(&pcnt_config);
 
@@ -408,15 +446,6 @@ void PCNTSetup()
     pcnt_counter_resume(PCNT_UNIT);
 }
 
-// This is an ISR implementation of the button press interrupt for the reversing and basket raising mechanism
-// it sends a notification to the reverse_task to commence (after three presses)
-void IRAM_ATTR basketSwitchPressedISR()
-{
-    BaseType_t hpw = pdFALSE;
-    vTaskNotifyGiveFromISR(reverse_handle, &hpw);
-    portYIELD_FROM_ISR(&hpw);
-}
-
 // Another ISR implementation for the start button to go (can also be a switch)
 void IRAM_ATTR startButtonPressedISR()
 {
@@ -425,36 +454,30 @@ void IRAM_ATTR startButtonPressedISR()
     portYIELD_FROM_ISR(&hpw);
 }
 
-void IRAM_ATTR vertClawLowPressedISR()
+void IRAM_ATTR carriageLowPressedISR()
 {
-    carriageSwitchHit = true;
     carriageHigh = false;
-    BaseType_t hpw = pdFALSE;
-    xTaskNotifyFromISR(home_handle, 0x01, eSetBits, &hpw);
-    portYIELD_FROM_ISR(&hpw);
-}
-
-void IRAM_ATTR vertClawHighPressedISR()
-{
     carriageSwitchHit = true;
+    // BaseType_t hpw = pdFALSE;
+    // xTaskNotifyFromISR(home_handle, 0x01, eSetBits, &hpw);
+    // portYIELD_FROM_ISR(&hpw);
+}
+
+void IRAM_ATTR carriageHighPressedISR()
+{
     carriageHigh = true;
-    BaseType_t hpw = pdFALSE;
-    xTaskNotifyFromISR(home_handle, 0x02, eSetBits, &hpw);
-    portYIELD_FROM_ISR(&hpw);
+    carriageSwitchHit = true;
+    // BaseType_t hpw = pdFALSE;
+    // xTaskNotifyFromISR(home_handle, 0x02, eSetBits, &hpw);
+    // portYIELD_FROM_ISR(&hpw);
 }
 
-void IRAM_ATTR horiClawLowPressedISR()
+void IRAM_ATTR clawFullExtensionPressedISR()
 {
-    BaseType_t hpw = pdFALSE;
-    xTaskNotifyFromISR(home_handle, 0x03, eSetBits, &hpw);
-    portYIELD_FROM_ISR(&hpw);
-}
-
-void IRAM_ATTR horiClawHHighPressedISR()
-{
-    BaseType_t hpw = pdFALSE;
-    xTaskNotifyFromISR(home_handle, 0x04, eSetBits, &hpw);
-    portYIELD_FROM_ISR(&hpw);
+    clawFullyExtended = true;
+    // BaseType_t hpw = pdFALSE;
+    // xTaskNotifyFromISR(home_handle, 0x03, eSetBits, &hpw);
+    // portYIELD_FROM_ISR(&hpw);
 }
 
 // freeRTOS tasks
@@ -484,69 +507,6 @@ void drive_task(void *parameters)
     }
 }
 
-// for communication with Pi, I was thinking the detect and grab tasks would bounce between each other
-/**
- * this task operates the grabbing system of the robot
- * @param parameters no parameters for this task
- */
-void grab_task(void *parameters)
-{
-
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-    // grabbing code here, feel free to change parameters
-}
-
-/**
- * this task operates the reverse driving of the robot, limited to straight-line motion. This task also covers alignment
- * with the zipline by reversing and then sending a signal to the raise_basket task.
- * @param parameters no parameters for this task
- */
-void reverse_task(void *parameters)
-{
-
-    // waits for third switch press before intiating reverse + basket raise (first hit at the door, second when going up the ramp, final on the zipline)
-    uint32_t pressCount = 0;
-    while (pressCount < 3)
-    {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        pressCount++;
-    }
-
-    for (;;)
-    {
-        // reverse code for aligning with zipline
-        vTaskSuspend(&drive_handle);
-        // reverse direction and drive slowly backwards (depending on reverseMultiplier) for two seconds
-        driveReverse(speed * reverseMultiplier);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
-        // stop motors for basket raise
-        stopDrive();
-
-        // signals to start basket raising code
-        xTaskNotifyGive(&raise_basket_handle);
-    }
-}
-
-/**
- * this task operates the raising of the basket for the zipline. It suspends the drive task temporarily while raising
- * the basket.
- * @param parameters no parameters for this task
- */
-void raise_basket_task(void *parameters)
-{
-
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    stopDrive();
-    // raise basket by rotating SG90 by 90 degrees slowly (hence the delays)
-    // there used to be a for(;;) loop here but I didn't really see why there was one so I removed it.
-    while (DSPos < 90)
-    {
-        MG996R.write(++DSPos);
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-    }
-}
-
 /**
  * this is a one-time task that activates the homing sequence, after which it puts the robot in idle mode. It also
  * terminates itself upon completion.
@@ -560,26 +520,6 @@ void home_task(void *parameters)
     // start driving and then delete this task as it will not occur again.
     xTaskNotifyGive(&idle_handle);
     vTaskDelete(NULL);
-}
-
-/**
- * this task operates a full 180 degree turn of the robot, ideally without losing the line. It is a safeguard for the
- * case in which the 90-second limit is reached. It suspends all other tasks during its operation, and only resumes
- * the drive task when completed.
- * @param parameters no parameters for this task
- */
-void full_turn_task(void *parameters)
-{
-    // full 180 turn sequence here, for once 90 second hard limit reached
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-    // abort all other actions
-    vTaskSuspendAll();
-
-    // hard code in 90-degree turn
-
-    // drive back to the start  (hopefully 180 turn lines up with tape)
-    vTaskResume(&drive_handle);
 }
 
 /**
@@ -674,18 +614,6 @@ void idle_task(void *parameters)
     vTaskDelete(NULL);
 }
 
-void test_drive(void *parameters) {
-    DriveMotors* robot = static_cast<DriveMotors*>(parameters);
-    for (;;) {
-        Serial.println("before switch");
-        robot->driveLeftMotor(speed,HIGH);
-        Serial.println(leftMotor->currentDirection);
-        vTaskDelay(1000);
-        Serial.println("after switch");
-        robot->driveRightMotor(speed,LOW);
-        vTaskDelay((1000/pwmFreq) / portTICK_PERIOD_MS);
-    }
-}
 
 // add more functions here
 
@@ -711,10 +639,10 @@ void setup()
         adc2_config_channel_atten(ADC2_CHANNEL_7, ADC_ATTEN_DB_12); // pin 27 = p_pot (to be removed later)
         adc2_config_channel_atten(ADC2_CHANNEL_6, ADC_ATTEN_DB_12); // pin 14 = d_pot
 
-        ledcSetup(leftPwmChannel, 250, 12); // middle number: duty cycle resolution in hz
-        ledcSetup(rightPwmChannel, 250, 12);
-        ledcAttachPin(pwmOut1, leftPwmChannel);
-        ledcAttachPin(pwmOut2, rightPwmChannel); // both motors controlled by same pwm channel
+        ledcSetup(leftPwmChannelFwd, 250, 12); // middle number: duty cycle resolution in hz
+        ledcSetup(rightPwmChannelFwd, 250, 12);
+        ledcAttachPin(pwmOut1, leftPwmChannelFwd);
+        ledcAttachPin(pwmOut2, rightPwmChannelFwd); // both motors controlled by same pwm channel
 
         ledcSetup(carriageHeightPWMChannel, 250, 12);
         ledcAttachPin(carriageMotorPWM, carriageHeightPWMChannel);
@@ -726,11 +654,9 @@ void setup()
 
         pinMode(startSwitch, INPUT_PULLUP);
         attachInterrupt(digitalPinToInterrupt(startSwitch), startButtonPressedISR, RISING);
-        pinMode(basketSwitch, INPUT_PULLUP);
-        attachInterrupt(digitalPinToInterrupt(basketSwitch), basketSwitchPressedISR, RISING);
 
         // starts the PCNT setup code
-        PCNTSetup();
+        rotaryEncoderSetup();
         // create tasks associated with functions defined above
         // priorities are temporary and TBD
         xTaskCreate(
@@ -742,33 +668,6 @@ void setup()
             &drive_handle // task handle
         );
 
-        xTaskCreate(
-            grab_task,   // function to be run
-            "Grabbing",  // description of task
-            1000,        // bytes allocated to this stack
-            NULL,        // parameters, dependent on function
-            2,           // priority
-            &grab_handle // task handle
-        );
-
-        xTaskCreate(
-            reverse_task,   // function to be run
-            "Reversing",    // description of task
-            1000,           // bytes allocated to this stack
-            NULL,           // parameters, dependent on function
-            3,              // priority
-            &reverse_handle // task handle
-        );
-
-        xTaskCreate(
-            raise_basket_task,   // function to be run
-            "Raising Basket",    // description of task
-            1000,                // bytes allocated to this stack
-            NULL,                // parameters, dependent on function
-            3,                   // priority
-            &raise_basket_handle // task handle
-        );
-
         // high priority task since it occurs on startup
         xTaskCreate(
             home_task,   // function to be run
@@ -777,16 +676,6 @@ void setup()
             NULL,        // parameters, dependent on function
             5,           // priority
             &home_handle // task handle
-        );
-
-        // high priority task since it overrides all other functions once 90 seconds are triggered
-        xTaskCreate(
-            full_turn_task,  // function to be run
-            "Turning (360)", // description of task
-            1000,            // bytes allocated to this stack
-            NULL,            // parameters, dependent on function
-            5,               // priority
-            &detect_handle   // task handle
         );
 
         xTaskCreate(
@@ -818,40 +707,44 @@ void setup()
     if (!run) {
         Serial.begin(9600);
         Serial.println("Serial starting");
-        /*
-        CARRIAGE MVT TESTING
-        carriageMotor.attachPins(carriageMotorPWM,carriageMotorDir);
-        pinMode(vertClawLOW, INPUT_PULLUP);
-        attachInterrupt(digitalPinToInterrupt(vertClawLOW), vertClawLowPressedISR, CHANGE); // chat suggests "FALLING"
-        */
+        //rotaryEncoderSetup();
+        // CARRIAGE MVT TESTING
+        // attachMotorPins(carriageHeightPWMChannel, carriageMotorPWM,carriageMotorDir);
+        // pinMode(carriageLOW, INPUT_PULLUP);
+        // pinMode(carriageHIGH, INPUT_PULLUP);
+        // attachInterrupt(digitalPinToInterrupt(carriageLOW), carriageLowPressedISR, RISING); // chat suggests "FALLING"
+        // attachInterrupt(digitalPinToInterrupt(carriageHIGH), carriageHighPressedISR, RISING); // chat suggests "FALLING"
 
-        adc1_config_width(ADC_WIDTH_BIT_12);
-        adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_12); // ir sensor inputs (pin 34/35)
-        adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_12);
-
-        ledcSetup(leftPwmChannel,pwmFreq,12);
-        ledcSetup(rightPwmChannel,pwmFreq,12);
-        ledcAttachPin(pwmOut1,leftPwmChannel);
-        ledcAttachPin(pwmOut2,rightPwmChannel);
-        pinMode(dirOut1,OUTPUT);
-        pinMode(dirOut2,OUTPUT);
-
-        // pinMode(vertClawLOW,INPUT_PULLUP);
-        // attachInterrupt(digitalPinToInterrupt(vertClawLOW), vertClawLowPressedISR, RISING);
+        // DRIVING
+        configIRSensors();
+        attachDriveMotorPins();
     }
 }
 
 void loop()
 {
-    // moveCarriage(true);
-    // carriageSwitchHit=false;
-    // Serial.println("resetting");
-    // delay(10);
+    /*
+    //carriage mvt
+    moveCarriage(!carriageHigh);
+    carriageSwitchHit=false;
+    Serial.println("resetting");
+    delay(200);
+    */
+
+    //rotary encoder
+    // int16_t count = 0;
+    // pcnt_get_counter_value(PCNT_UNIT, &count);
+    // Serial.print("Encoder Count: ");
+    // Serial.println(count);
+    // delay(300);
+
+    
     if (!run) {
         // PUT TEST CODE HERE
 
+        //driving code
         drive(speed);
-        delay(1000/pwmFreq);
+        delay(500);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler
