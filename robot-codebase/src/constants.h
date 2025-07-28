@@ -26,16 +26,16 @@ constexpr int dirOut2 = 19;
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
 constexpr int SG90Pin = 14;
-constexpr int DSPin = 12;
-constexpr int MG996RPin = 13;
+//constexpr int DSPin = 12;
+constexpr int MG996RPin = 12;
 constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
-constexpr int startSwitch = 26;
-constexpr int carriageLOW = 39;
-constexpr int carriageHIGH = 32;
+constexpr int startSwitch = 39;
+constexpr int carriageLOW = 32;
+constexpr int carriageHIGH = 25;
 constexpr int clawExtendedSwitch = 33;
-constexpr int clawRetractedSwitch = 27;
+constexpr int clawRetractedSwitch = 26;
 constexpr int carriageMotorPWM = 5;
 constexpr int carriageMotorDir = 10;
 constexpr int clawExtMotorPWM =  8;
@@ -46,16 +46,16 @@ constexpr int extraGND = 4;
 constexpr int hallSensorPin = 36;
 
 // constants
-constexpr int thresholdL = 1000;
-constexpr int thresholdR = 1600;
-constexpr int defaultSpeed = 1500;
+constexpr int thresholdL = 1400;
+constexpr int thresholdR = 2200;
+constexpr int defaultSpeed = 1800;
 constexpr int maxSpeed = 3000; // set a max pwm output
 constexpr int minSpeed = 500;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
-constexpr int defaultKProp = 450; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 500;
+constexpr int defaultKProp = 600; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 300;
 constexpr int pwmFreq = 500;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
@@ -74,7 +74,10 @@ constexpr int pwmChannel=0;
 constexpr int servoFreq = 50;
 constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
-constexpr int carriageForwardPos=90;
+constexpr int carriageForwardPos=120;
+constexpr int carriageMaxLeftPos=0;
+constexpr int carriageMaxRightPos=240;
+constexpr double MG996RMultiplier = 1.316;
 
 constexpr float encoderCountToInches = 0.05;
 

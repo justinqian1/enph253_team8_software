@@ -73,25 +73,25 @@ void pickUpPet() {
 void testRotation() {
     //MG996R.rotateTo(120);
     
-        MG996R.rotateTo(120);
-        MySerial.println("position set to 120");
-        delay(1500);
+    MG996R.rotateTo(120);
+    MySerial.println("position set to 120");
+    delay(1500);
 
-        MG996R.rotateBy(90);
-        MySerial.println("position should be 210");
-        delay(1500);
+    MG996R.rotateBy(90);
+    MySerial.println("position should be 210");
+    delay(1500);
 
-        MG996R.rotateBy(-90);
-        MySerial.println("position should be 120");
-        delay(1500);
+    MG996R.rotateBy(-90);
+    MySerial.println("position should be 120");
+    delay(1500);
 
-        MG996R.rotateBy(-90);
-        MySerial.println("position should be 30");
-        delay(1500);
+    MG996R.rotateBy(-90);
+    MySerial.println("position should be 30");
+    delay(1500);
 
-        MG996R.rotateBy(90);
-        MySerial.println("position should be 120");
-        MySerial.println("test ended");
+    MG996R.rotateBy(90);
+    MySerial.println("position should be 120");
+    MySerial.println("test ended");
         
    /*
     bool increasing=true;
