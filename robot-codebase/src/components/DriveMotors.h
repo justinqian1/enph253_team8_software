@@ -19,7 +19,7 @@ public:
      * @param lIRSensor the left IR sensor
      * @param rIRSensor the right IR sensor
      */
-    DriveMotors(Motor *lMotor, Motor *rMotor, IRSensor *lIRSensor, IRSensor *rIRSensor);
+    DriveMotors(Motor &lMotor, Motor &rMotor, IRSensor &lIRSensor, IRSensor &rIRSensor);
 
     /**
      * Drives the robot with PID control, with variable parameters

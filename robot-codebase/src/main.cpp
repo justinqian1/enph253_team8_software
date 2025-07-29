@@ -91,9 +91,9 @@ CustomServo MG996R(MG996RPin,carriageServoPWMChannel, 90, 50, 500, 2500);
 //  motor declarations
 Motor leftMotor(0, 8, 7);
 Motor rightMotor(1, 19, 22);
-IRSensor* leftIRSensor;
-IRSensor* rightIRSensor;
-DriveMotors* robot;
+IRSensor leftIRSensor(ADC1_CHANNEL_0);
+IRSensor rightIRSensor(ADC1_CHANNEL_1);
+DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
 //Motor carriageMotor(carriageHeightPWMChannel);
 
@@ -874,8 +874,7 @@ void loop()
        //  Serial.print(isrTrigger);
        //  Serial.print(" ");
        // Serial.println(rotaryPosition);
-        leftMotor.driveMotor(2000, 1);
-        rightMotor.driveMotor(2000, 1);
+        robot.driveStraight(2000,1);
         delay(4);
     }
 
