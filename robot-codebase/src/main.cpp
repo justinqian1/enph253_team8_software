@@ -89,13 +89,14 @@ CustomServo SG90(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, se
 CustomServo MG996R(MG996RPin,carriageServoPwmChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
 
 //  motor declarations
-Motor leftMotor(leftPwmChannelFwd, pwmOut1, leftPwmChannelBwd, dirOut1);
-Motor rightMotor(rightPwmChannelFwd, pwmOut2, rightPwmChannelBwd, dirOut2);
+Motor leftMotor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
+Motor rightMotor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
 IRSensor leftIRSensor(ADC1_CHANNEL_6);
 IRSensor rightIRSensor(ADC1_CHANNEL_7);
 RobotWheels robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
-//Motor carriageMotor(carriageHeightPWMChannel);
+Motor carriageMotor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
+Motor clawExtMotor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
 
 // function declarations
 void resetVars();
@@ -156,7 +157,7 @@ double angleToCenter(double petX) {
  * @param up, true if moving up and false if moving down
  */
 void moveCarriage(bool up) {
-    // driveAndreMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown,carriageSpeed,up);
+    carriageMotor.driveMotor(carriageSpeed,up);
     Serial.println(up ? "Moving carriage upwards" : "Moving carriage downwards");
         
         // SwitchHit hit;
@@ -186,13 +187,13 @@ void extendClaw (bool outwards) {
         Serial2Pi.println("Claw extending");
         while (!clawFullyExtended) {
             clawFullyRetracted = false;
-            driveMotor(clawExtPwmChannelExt,clawExtPwmChannelRet, clawExtSpeed, 1);
+            clawExtMotor.driveForward(clawExtSpeed);
         }
     } else {
         Serial2Pi.println("Claw retracting");
         while (!clawFullyRetracted) {
             clawFullyExtended = false;
-            driveMotor(clawExtPwmChannelExt,clawExtPwmChannelRet, clawExtSpeed, 0);
+            clawExtMotor.driveReverse(clawExtSpeed);
         }
     }
     // on interrupt (switch hit)
@@ -393,37 +394,6 @@ void home()
     // }
 }
 
-/**
- * OBSOLETE - NO LONGER USING PCNT
- * sets up the PCNT counter using the two rotaryEncoderPins, an overflow limit of 10000,
- * and a filter time of  1000 clock cycles.
- */
-void rotaryEncoderSetup()
-{
-    pcnt_config_t pcnt_config = {
-        .pulse_gpio_num = rotaryA, // Only pulse pin (A)
-        .ctrl_gpio_num = rotaryB, // Added direction pin B
-        .lctrl_mode = PCNT_MODE_REVERSE,
-        .hctrl_mode = PCNT_MODE_KEEP,
-        .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
-        .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
-        .counter_h_lim = 100, // High limit (for overflow check)
-        .counter_l_lim = 0,      // Low limit (optional)
-        .unit = PCNT_UNIT,
-        .channel = PCNT_CHANNEL_0,
-    };
-
-    pcnt_unit_config(&pcnt_config);
-
-    // Optional: filter out noise shorter than 1000 clock cycles
-    pcnt_set_filter_value(PCNT_UNIT, 100);
-    pcnt_filter_enable(PCNT_UNIT);
-
-    pcnt_counter_pause(PCNT_UNIT);
-    pcnt_counter_clear(PCNT_UNIT);
-    pcnt_counter_resume(PCNT_UNIT);
-}
-
 // Another ISR implementation for the start button to go (can also be a switch)
 void IRAM_ATTR startButtonPressedISR()
 {
@@ -493,7 +463,7 @@ void drive_task(void *parameters)
     for (;;)
     {
 
-        drive(speed,true);
+        robot.drivePID(speed);
         Serial2Pi.printf("driving");
 
         // if (millis() - startTime > 90000)
@@ -568,7 +538,7 @@ void detect_task(void *parameters)
 
                 if (clawCentered && closeEnough && anglePastThreshold) {
                     // arm is at nearly 90 degree angle -> initiate pick up
-                    stopDrive();
+                    robot.stop();
                     vTaskSuspendAll();
                     pickUpPet();      
                     xTaskResumeAll();   
@@ -716,8 +686,8 @@ void setup()
 
         ledcSetup(leftPwmChannelFwd, 250, 12); // middle number: duty cycle resolution in hz
         ledcSetup(rightPwmChannelFwd, 250, 12);
-        ledcAttachPin(pwmOut1, leftPwmChannelFwd);
-        ledcAttachPin(pwmOut2, rightPwmChannelFwd); // both motors controlled by same pwm channel
+        // ledcAttachPin(pwmOut1, leftPwmChannelFwd);
+        // ledcAttachPin(pwmOut2, rightPwmChannelFwd);
 
         //ledcSetup(carriageHeightPWMChannel, 250, 12);
         //ledcAttachPin(carriageMotorPWM, carriageHeightPWMChannel);
@@ -731,7 +701,7 @@ void setup()
         attachInterrupt(digitalPinToInterrupt(startSwitch), startButtonPressedISR, RISING);
 
         // starts the PCNT setup code
-        rotaryEncoderSetup();
+        // rotaryEncoderSetup();
         // create tasks associated with functions defined above
         // priorities are temporary and TBD
         xTaskCreate(

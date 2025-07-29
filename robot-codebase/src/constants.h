@@ -19,10 +19,15 @@ constexpr int carriageServoPwmChannel = 8;
 constexpr int clawClosingServoPwmChannel = 9;
 
 // ESP32 pins
-constexpr int pwmOut1 = 8; // outputs the pwm channel according to ledcAttachPin
-constexpr int dirOut1 = 7;
-constexpr int pwmOut2 = 22;
-constexpr int dirOut2 = 19;
+constexpr int leftDriveFwdPin = 8; // outputs the pwm channel according to ledcAttachPin
+constexpr int leftDriveBwdPin = 7;
+constexpr int rightDriveFwdPin = 22;
+constexpr int rightDriveBwdPin = 19;
+constexpr int carriageUpPin = 5;
+constexpr int carriageDownPin = 10;
+constexpr int clawExtPin =  8;
+constexpr int clawRetPin = 7;
+
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
 constexpr int SG90Pin = 14;
@@ -36,21 +41,10 @@ constexpr int carriageLOW = 32;
 constexpr int carriageHIGH = 25;
 constexpr int clawExtendedSwitch = 33;
 constexpr int clawRetractedSwitch = 26;
-constexpr int carriageMotorPWM = 5;
-constexpr int carriageMotorDir = 10;
-constexpr int clawExtMotorPWM =  8;
-constexpr int clawExtMotorDir = 7;
 
 //temp rotary encoder pins
 constexpr int rotaryA = 0;
 constexpr int rotaryB = 4;
-
-// constants
-constexpr int thresholdL = 3100;
-constexpr int thresholdR = 3100;
-constexpr int maxSpeed = 2500; // set a max pwm output
-constexpr int minSpeed = 0;    // set a min pwm output
-constexpr int hallSensorPin = 36;
 
 // general constants
 constexpr int pwmFreq = 500;
@@ -82,10 +76,10 @@ constexpr double horizontal_fov=62.2;
 constexpr int servoFreq = 50;
 constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
+constexpr double MG996RMultiplier = 1.316;
 constexpr int carriageForwardPos=120;
 constexpr int carriageMaxLeftPos=0;
 constexpr int carriageMaxRightPos=(int)(180.0*MG996RMultiplier);
-constexpr double MG996RMultiplier = 1.316;
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;

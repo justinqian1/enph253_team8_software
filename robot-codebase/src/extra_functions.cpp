@@ -452,3 +452,34 @@
 //     }
 //     return dist;
 // }
+
+/**
+ * OBSOLETE - NO LONGER USING PCNT
+ * sets up the PCNT counter using the two rotaryEncoderPins, an overflow limit of 10000,
+ * and a filter time of  1000 clock cycles.
+ */
+// void rotaryEncoderSetup()
+// {
+//     pcnt_config_t pcnt_config = {
+//         .pulse_gpio_num = rotaryA, // Only pulse pin (A)
+//         .ctrl_gpio_num = rotaryB, // Added direction pin B
+//         .lctrl_mode = PCNT_MODE_REVERSE,
+//         .hctrl_mode = PCNT_MODE_KEEP,
+//         .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
+//         .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
+//         .counter_h_lim = 100, // High limit (for overflow check)
+//         .counter_l_lim = 0,      // Low limit (optional)
+//         .unit = PCNT_UNIT,
+//         .channel = PCNT_CHANNEL_0,
+//     };
+
+//     pcnt_unit_config(&pcnt_config);
+
+//     // Optional: filter out noise shorter than 1000 clock cycles
+//     pcnt_set_filter_value(PCNT_UNIT, 100);
+//     pcnt_filter_enable(PCNT_UNIT);
+
+//     pcnt_counter_pause(PCNT_UNIT);
+//     pcnt_counter_clear(PCNT_UNIT);
+//     pcnt_counter_resume(PCNT_UNIT);
+// }
