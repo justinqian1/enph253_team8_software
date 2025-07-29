@@ -7,7 +7,7 @@
 #include "driver/pcnt.h"
 #include "constants.h"
 #include "hardware/CustomServo.h"
-#include "components/DriveMotors.h"
+#include "components/RobotWheels.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
 bool run = false;
@@ -93,7 +93,7 @@ Motor leftMotor(0, 8, 7);
 Motor rightMotor(1, 19, 22);
 IRSensor leftIRSensor(ADC1_CHANNEL_0);
 IRSensor rightIRSensor(ADC1_CHANNEL_1);
-DriveMotors robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+RobotWheels robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
 //Motor carriageMotor(carriageHeightPWMChannel);
 

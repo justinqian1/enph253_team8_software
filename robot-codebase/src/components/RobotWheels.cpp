@@ -2,12 +2,12 @@
 // Created by bram on 16/07/25.
 //
 
-#include "DriveMotors.h"
+#include "RobotWheels.h"
 #include "hardware/Motor.h"
 
 #define ROBOT_DEBUG
 
-DriveMotors::DriveMotors(Motor &lMotor, Motor &rMotor, IRSensor &lIRSensor,
+RobotWheels::RobotWheels(Motor &lMotor, Motor &rMotor, IRSensor &lIRSensor,
                          IRSensor &rIRSensor) : leftMotor(lMotor), rightMotor(rMotor), leftIRSensor(lIRSensor),
                                                       rightIRSensor(rIRSensor) {
 }
@@ -33,7 +33,7 @@ void DriveMotors::drivePID(int speed) {
     rightReading = rightIRSensor.read();
 }
 */
-void DriveMotors::drivePID(int speed, int kp,
+void RobotWheels::drivePID(int speed, int kp,
                            int kd) {
     _last_distance = _distance;
     _distance = distToTape();
@@ -65,21 +65,21 @@ void DriveMotors::drivePID(int speed, int kp,
 #endif ROBOT_DEBUG
 }
 
-void DriveMotors::stop() {
+void RobotWheels::stop() {
     leftMotor.stopMotor();
     rightMotor.stopMotor();
 }
 
-void DriveMotors::driveStraight(int speed, int direction) {
+void RobotWheels::driveStraight(int speed, int direction) {
     driveLeftMotor(speed, direction);
     driveRightMotor(speed, direction);
 }
 
-void DriveMotors::driveLeftMotor(int speed, int direction) {
+void RobotWheels::driveLeftMotor(int speed, int direction) {
     leftMotor.driveMotor(speed, direction);
 }
 
-void DriveMotors::driveRightMotor(int speed, int direction) {
+void RobotWheels::driveRightMotor(int speed, int direction) {
     rightMotor.driveMotor(speed, direction);
 }
 
@@ -89,7 +89,7 @@ void DriveMotors::driveRightMotor(int speed, int direction) {
  *
  * @return an integer indicating the robot's distance from the tape, either +/-5, +/-1, or 0 (on the line)
  */
-int DriveMotors::distToTape()
+int RobotWheels::distToTape()
 {
     int dist = 0;
     leftOnTape = leftIRSensor.readThreshold(leftThreshold); // adc1 ch6 = pin 34

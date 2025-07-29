@@ -20,9 +20,9 @@ class Motor : public motor_interface
      */
     Motor(int pwmChFwd, int pwmFwdPin, int pwmChBkwd, int pwmBkwdPin);
     /**
-     * drives the motor with a specified speed and direction
+     * drives the motor with a specified speed and direction, with built in shoot-through protection
      * @param speed the speed at which to drive the motor, from 0 to 4095
-     * @param direction the direction in which to drive the motor, 0 for right, 1 for left
+     * @param direction the direction in which to drive the motor, 1 for forward, 0 for backward
      */
     void driveMotor(int speed, int direction) override;
 
