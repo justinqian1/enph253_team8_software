@@ -848,7 +848,7 @@ void setup()
     }
         pinMode(rotaryA, INPUT_PULLUP);
         pinMode(rotaryB, INPUT_PULLUP);
-        attachInterrupt(rotaryA, encoderRead, RISING);
+        attachInterrupt(rotaryA, encoderRead, CHANGE);
 
 }
 
@@ -866,16 +866,16 @@ void loop()
         testServo.setAngle(0);
         delay(100);
         */
-       //  Serial.print("A: ");
-       //  Serial.print(digitalRead(rotaryA));
-       //  Serial.print(" B ");
-       //  Serial.print(digitalRead(rotaryB));
-       //  Serial.print(" ISR: ");
-       //  Serial.print(isrTrigger);
-       //  Serial.print(" ");
-       // Serial.println(rotaryPosition);
-        robot.driveStraight(2000,1);
-        delay(4);
+         Serial.print("A: ");
+        Serial.print(digitalRead(rotaryA));
+        Serial.print(" B ");
+        Serial.print(digitalRead(rotaryB));
+        Serial.print(" ISR: ");
+        Serial.print(isrTrigger);
+        Serial.print(" ");
+       Serial.println(rotaryPosition);
+        // robot.driveStraight(2000,1);
+        // delay(4);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler

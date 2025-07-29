@@ -41,8 +41,8 @@ constexpr int rotaryEncoderPinA = 2;
 constexpr int rotaryEncoderPinB = 15;
 
 //temp rotary encoder pins
-constexpr int rotaryA = 12;
-constexpr int rotaryB = 13;
+constexpr int rotaryA = 0;
+constexpr int rotaryB = 4;
 // constants
 constexpr int thresholdL = 3100;
 constexpr int thresholdR = 3100;
