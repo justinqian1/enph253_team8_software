@@ -12,22 +12,17 @@ class Motor : public motor_interface
 {
     public:
     /**
-     * Creates a motor object assigned to a specific PWM channel
-     * @param pwmCh
+     * Create a motor object with two PWM channels for forward and backward, attached to two pins
+     * @param pwmChFwd the PWM channel to run forward movement
+     * @param pwmFwdPin the pin assigned to the forward PWM channel
+     * @param pwmChBkwd the PWM channel to run backward movement
+     * @param pwmBkwdPin tne pin assigned to the backward PWM channel
      */
-    Motor(int pwmCh);
-
+    Motor(int pwmChFwd, int pwmFwdPin, int pwmChBkwd, int pwmBkwdPin);
     /**
-     * Assigns PWM and direction pins to a motor object
-     * @param pwmPin the pin assigned to the motor PWM
-     * @param dirPin the pin assigned to the motor direction
-     */
-    void attachPins(int pwmCh, int pwmPin, int dirPin);
-
-    /**
-     * drives the motor with a specified speed and direction
+     * drives the motor with a specified speed and direction, with built in shoot-through protection
      * @param speed the speed at which to drive the motor, from 0 to 4095
-     * @param direction the direction in which to drive the motor, 0 for right, 1 for left
+     * @param direction the direction in which to drive the motor, 1 for forward, 0 for backward
      */
     void driveMotor(int speed, int direction) override;
 
@@ -52,19 +47,21 @@ class Motor : public motor_interface
      * returns the PWM channel pin
      * @return the pin for the PWM channel
      */
-    int getMotorPWMPin();
+    int getForwardPWMPin();
 
     /**
      * returns the direction pin
      * @return the pin for the direction
      */
-    int getMotorDirectionPin();
+    int getBackwardPWMPin();
 
     int currentDirection = 0;
 
     private:
-    int motorPWMPin = 0;
-    int motorDirectionPin = 0;
-    int pwmChannel;
+    int forwardPWMPin;
+    int backwardPWMPin;
+    int forwardPWMChannel;
+    int backwardPWMChannel;
+    int deadTime = 10; // ms
 };
 #endif //MOTOR_H

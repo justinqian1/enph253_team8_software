@@ -5,8 +5,6 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#include "driver/pcnt.h"
-
 // PWM Channels
 
 constexpr int leftPwmChannelFwd = 0;
@@ -42,9 +40,16 @@ constexpr int carriageMotorPWM = 5;
 constexpr int carriageMotorDir = 10;
 constexpr int clawExtMotorPWM =  8;
 constexpr int clawExtMotorDir = 7;
-constexpr int rotaryEncoderPinA = 2;
-constexpr int rotaryEncoderPinB = 15;
-constexpr int extraGND = 4;
+
+//temp rotary encoder pins
+constexpr int rotaryA = 0;
+constexpr int rotaryB = 4;
+
+// constants
+constexpr int thresholdL = 3100;
+constexpr int thresholdR = 3100;
+constexpr int maxSpeed = 2500; // set a max pwm output
+constexpr int minSpeed = 0;    // set a min pwm output
 constexpr int hallSensorPin = 36;
 
 // general constants

@@ -283,3 +283,172 @@
 //         DS.setPeriodHertz(50);
 //         DS.attach(DSPin, 500, 2400);
 //     }
+
+
+// /**
+//  * OLD DRIVING FUNCTION
+//  * @param avgSpeedInput the average speed of the robot while driving
+//  */
+// void drive(int avgSpeedInput, bool andre)
+// {
+//     last_distance = distance;
+//     distance = distToTape();
+
+//     if (last_distance != distance)
+//     {
+//         q = m;
+//         m = 1;
+//     }
+
+//     p = defaultKProp * distance;
+//     d = (int)((float)defaultKDeriv * (float)(distance - last_distance) / (float)(q + m));
+//     // i+=ki*distance;
+//     ctrl = (int)(p + d);
+//     m++;
+
+//     leftSpeed = constrain(avgSpeedInput - ctrl, minSpeed, maxSpeed);
+//     rightSpeed = constrain(avgSpeedInput + ctrl, minSpeed, maxSpeed);
+
+//     if (andre) {
+//         ledcWrite(leftPwmChannelFwd, leftSpeed);
+//         ledcWrite(rightPwmChannelFwd, rightSpeed);
+//         ledcWrite(leftPwmChannelBwd, 0);
+//         ledcWrite(rightPwmChannelBwd, 0);
+//     } else { // Greg bridge
+//         digitalWrite(dirOut1, dir1);
+//         digitalWrite(dirOut2, dir2); 
+//         ledcWrite(leftPwmChannelFwd,leftSpeed);
+//         ledcWrite(rightPwmChannelFwd,rightSpeed);
+//     }
+    
+//     leftVal = adc1_get_raw(ADC1_CHANNEL_6);
+//     rightVal = adc1_get_raw(ADC1_CHANNEL_7);
+
+//     Serial.print("Left reading:");
+//     Serial.print(leftVal);
+//     Serial.print("   Right reading:");
+//     Serial.println(rightVal);
+//     Serial.print("Speed left:");
+//     Serial.println(leftSpeed);
+//     Serial.print("Speed right:");
+//     Serial.println(rightSpeed);
+// }
+
+// void attachMotorPins(int pwmChannel, int pwmPin, int dirPin) {
+//     ledcSetup(pwmChannel,pwmFreq,12);
+//     ledcAttachPin(pwmPin,pwmChannel);
+//     pinMode(dirPin,OUTPUT);
+// }
+
+// void attachAndreMotorPins(int pwmCh1, int pwmCh2, int pwmPin1, int pwmPin2) {
+//     ledcSetup(pwmCh1, pwmFreq, 12);
+//     ledcSetup(pwmCh2, pwmFreq, 12);
+//     ledcAttachPin(pwmPin1, pwmCh1);
+//     ledcAttachPin(pwmPin2, pwmCh2);
+// }
+
+// void attachDriveMotorPins(bool andre) {    
+//     //andre bridge
+//     if (andre) {
+//         ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
+//         ledcSetup(leftPwmChannelBwd, pwmFreq, 12);
+//         ledcAttachPin(pwmOut1, leftPwmChannelFwd);
+//         ledcAttachPin(dirOut1, leftPwmChannelBwd);
+
+//         ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
+//         ledcSetup(rightPwmChannelBwd, pwmFreq, 12);
+//         ledcAttachPin(dirOut2, rightPwmChannelFwd);
+//         ledcAttachPin(pwmOut2, rightPwmChannelBwd);
+//     } else {     //greg bridge
+//         ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
+//         ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
+//         ledcAttachPin(pwmOut1, leftPwmChannelFwd);
+//         ledcAttachPin(pwmOut2, rightPwmChannelFwd);
+//         pinMode(dirOut1,OUTPUT);
+//         pinMode(dirOut2, OUTPUT);
+//     }
+// }
+
+// void configIRSensors() {
+//     adc1_config_width(ADC_WIDTH_BIT_12);
+//     adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_12); // ir sensor inputs (pin 34/35)
+//     adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_12);
+
+// }
+
+// void driveMotor(int pwmCh, int dirPin, int speed, int dir) {
+//     digitalWrite(dirPin,dir);
+//     ledcWrite(pwmCh, speed);
+// }
+
+// void driveAndreMotor(int pwmCh1, int pwmCh2, int speed, int dir) {
+//     dir==1 ? ledcWrite(pwmCh1, speed) : ledcWrite(pwmCh2, speed);
+// }
+
+// /**
+//  * stops greg motor
+//  */
+// void stopMotor(int pwmCh) {
+//     ledcWrite(pwmCh,0);
+// }
+
+// /**
+//  * stops andre motor
+//  */
+// void stopMotor (int pwmCh1, int pwmCh2) {
+//     ledcWrite(pwmCh1,0);
+//     ledcWrite(pwmCh2,0);   
+// }
+
+// void stopDrive() {
+//     stopMotor(leftPwmChannelFwd);
+//     stopMotor(leftPwmChannelBwd);
+//     stopMotor(rightPwmChannelFwd);
+//     stopMotor(rightPwmChannelFwd);
+// }
+
+// void switchMotorDirection(int pwmCh, int dirPin, int speed, int newDir) {
+//     stopMotor(pwmCh);
+//     delay(5);
+//     digitalWrite(dirPin, newDir);
+//     ledcWrite(pwmCh,speed);
+// }
+
+// /**
+//  * distToTape - calculates the distance to the tape based on the IR sensor readings
+//  *
+//  * @return an integer indicating the robot's distance from the tape, either +/-5, +/-1, or 0 (on the line)
+//  */
+// int distToTape()
+// {
+//     int dist = 0;
+//     leftOnTape = adc1_get_raw(ADC1_CHANNEL_6) > thresholdL; // adc1 ch6 = pin 34
+//     rightOnTape = adc1_get_raw(ADC1_CHANNEL_7) > thresholdR; // adc1 ch7 = pin 35
+//     if (leftOnTape == 1 && rightOnTape == 1)
+//     {
+//         dist = 0;
+//     }
+//     else if (leftOnTape == 0 && rightOnTape == 1)
+//     {
+//         // only right sensor is on tape -> robot is to the left
+//         dist = -1;
+//         lastOnTape = 1;
+//     }
+//     else if (leftOnTape == 1 && rightOnTape == 0)
+//     {
+//         // only left sensor is on tape -> robot is to the left
+//         dist = 1;
+//         lastOnTape = -1;
+//     }
+//     else if (leftOnTape == 0 && rightOnTape == 0 && lastOnTape == 1)
+//     {
+//         // neither on tape but right was last one on tape
+//         dist = -5;
+//     }
+//     else
+//     {
+//         // neither on tape but left was last one on tape
+//         dist = 5;
+//     }
+//     return dist;
+// }

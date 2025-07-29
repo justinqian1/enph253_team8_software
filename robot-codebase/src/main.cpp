@@ -7,7 +7,7 @@
 #include "driver/pcnt.h"
 #include "constants.h"
 #include "hardware/CustomServo.h"
-#include "components/DriveMotors.h"
+#include "components/RobotWheels.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
 bool run = false;
@@ -71,29 +71,29 @@ int16_t rotaryMin = 0;
 
 // for limit switches
 volatile bool carriageSwitchHit = false;
+volatile int rotaryPosition = 0;
+volatile int lastEncodedBitValue  = 0;
+constexpr int lookupTable[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
+volatile int isrTrigger = 0;
+volatile unsigned long lastTime = 0;
+
+// robot position
 volatile bool clawFullyExtended = false;
 volatile bool clawFullyRetracted = false;
-volatile bool carriageHighSwitchHit = false;
-volatile bool carriageLowSwitchHit = false; 
-
-// mutex
-portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // servos
 // for closing the claw
 CustomServo SG90(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
-// uint32_t SG90Pos = 0;
 
 // for rotating turret
 CustomServo MG996R(MG996RPin,carriageServoPwmChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
-//uint32_t MG996RPos = 0;
 
 //  motor declarations
-// Motor* leftMotor;
-// Motor* rightMotor;
-// IRSensor* leftIRSensor;
-// IRSensor* rightIRSensor;
-// DriveMotors* robot;
+Motor leftMotor(leftPwmChannelFwd, pwmOut1, leftPwmChannelBwd, dirOut1);
+Motor rightMotor(rightPwmChannelFwd, pwmOut2, rightPwmChannelBwd, dirOut2);
+IRSensor leftIRSensor(ADC1_CHANNEL_6);
+IRSensor rightIRSensor(ADC1_CHANNEL_7);
+RobotWheels robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
 //Motor carriageMotor(carriageHeightPWMChannel);
 
@@ -128,7 +128,6 @@ double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in i
 
 // TEST PARAMETERS
 
-
 /**
  * resets pet detection related variables after pickup
  */
@@ -138,45 +137,6 @@ void resetVars() {
     clawCentered = false;
     anglePastThreshold = false;
     speed=defaultSpeed;
-}
-
-/**
- * distToTape - calculates the distance to the tape based on the IR sensor readings
- *
- * @return an integer indicating the robot's distance from the tape, either +/-5, +/-1, or 0 (on the line)
- */
-int distToTape()
-{
-    int dist = 0;
-    leftOnTape = adc1_get_raw(ADC1_CHANNEL_6) > thresholdL; // adc1 ch6 = pin 34
-    rightOnTape = adc1_get_raw(ADC1_CHANNEL_7) > thresholdR; // adc1 ch7 = pin 35
-    if (leftOnTape == 1 && rightOnTape == 1)
-    {
-        dist = 0;
-    }
-    else if (leftOnTape == 0 && rightOnTape == 1)
-    {
-        // only right sensor is on tape -> robot is to the left
-        dist = -1;
-        lastOnTape = 1;
-    }
-    else if (leftOnTape == 1 && rightOnTape == 0)
-    {
-        // only left sensor is on tape -> robot is to the left
-        dist = 1;
-        lastOnTape = -1;
-    }
-    else if (leftOnTape == 0 && rightOnTape == 0 && lastOnTape == 1)
-    {
-        // neither on tape but right was last one on tape
-        dist = -5;
-    }
-    else
-    {
-        // neither on tape but left was last one on tape
-        dist = 5;
-    }
-    return dist;
 }
 
 /**
@@ -190,134 +150,6 @@ double angleToCenter(double petX) {
     return result;
 }
 
-/**
- * drives the robot forward with PID control
- * @param avgSpeedInput the average speed of the robot while driving
- */
-void drive(int avgSpeedInput, bool andre)
-{
-    last_distance = distance;
-    distance = distToTape();
-
-    if (last_distance != distance)
-    {
-        q = m;
-        m = 1;
-    }
-
-    p = defaultKProp * distance;
-    d = (int)((float)defaultKDeriv * (float)(distance - last_distance) / (float)(q + m));
-    // i+=ki*distance;
-    ctrl = (int)(p + d);
-    m++;
-
-    leftSpeed = constrain(avgSpeedInput - ctrl, minSpeed, maxSpeed);
-    rightSpeed = constrain(avgSpeedInput + ctrl, minSpeed, maxSpeed);
-
-    if (andre) {
-        ledcWrite(leftPwmChannelFwd, leftSpeed);
-        ledcWrite(rightPwmChannelFwd, rightSpeed);
-        ledcWrite(leftPwmChannelBwd, 0);
-        ledcWrite(rightPwmChannelBwd, 0);
-    } else { // Greg bridge
-        digitalWrite(dirOut1, dir1);
-        digitalWrite(dirOut2, dir2); 
-        ledcWrite(leftPwmChannelFwd,leftSpeed);
-        ledcWrite(rightPwmChannelFwd,rightSpeed);
-    }
-    
-    leftVal = adc1_get_raw(ADC1_CHANNEL_6);
-    rightVal = adc1_get_raw(ADC1_CHANNEL_7);
-
-    Serial.print("Left reading:");
-    Serial.print(leftVal);
-    Serial.print("   Right reading:");
-    Serial.println(rightVal);
-    Serial.print("Speed left:");
-    Serial.println(leftSpeed);
-    Serial.print("Speed right:");
-    Serial.println(rightSpeed);
-}
-
-void attachMotorPins(int pwmChannel, int pwmPin, int dirPin) {
-    ledcSetup(pwmChannel,pwmFreq,12);
-    ledcAttachPin(pwmPin,pwmChannel);
-    pinMode(dirPin,OUTPUT);
-}
-
-void attachAndreMotorPins(int pwmCh1, int pwmCh2, int pwmPin1, int pwmPin2) {
-    ledcSetup(pwmCh1, pwmFreq, 12);
-    ledcSetup(pwmCh2, pwmFreq, 12);
-    ledcAttachPin(pwmPin1, pwmCh1);
-    ledcAttachPin(pwmPin2, pwmCh2);
-}
-
-void attachDriveMotorPins(bool andre) {    
-    //andre bridge
-    if (andre) {
-        ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
-        ledcSetup(leftPwmChannelBwd, pwmFreq, 12);
-        ledcAttachPin(pwmOut1, leftPwmChannelFwd);
-        ledcAttachPin(dirOut1, leftPwmChannelBwd);
-
-        ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
-        ledcSetup(rightPwmChannelBwd, pwmFreq, 12);
-        ledcAttachPin(dirOut2, rightPwmChannelFwd);
-        ledcAttachPin(pwmOut2, rightPwmChannelBwd);
-    } else {     //greg bridge
-        ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
-        ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
-        ledcAttachPin(pwmOut1, leftPwmChannelFwd);
-        ledcAttachPin(pwmOut2, rightPwmChannelFwd);
-        pinMode(dirOut1,OUTPUT);
-        pinMode(dirOut2, OUTPUT);
-    }
-}
-
-void configIRSensors() {
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(ADC1_CHANNEL_6,ADC_ATTEN_DB_12); // ir sensor inputs (pin 34/35)
-    adc1_config_channel_atten(ADC1_CHANNEL_7,ADC_ATTEN_DB_12);
-
-}
-
-void driveMotor(int pwmCh, int dirPin, int speed, int dir) {
-    digitalWrite(dirPin,dir);
-    ledcWrite(pwmCh, speed);
-}
-
-void driveAndreMotor(int pwmCh1, int pwmCh2, int speed, int dir) {
-    dir==1 ? ledcWrite(pwmCh1, speed) : ledcWrite(pwmCh2, speed);
-}
-
-/**
- * stops greg motor
- */
-void stopMotor(int pwmCh) {
-    ledcWrite(pwmCh,0);
-}
-
-/**
- * stops andre motor
- */
-void stopMotor (int pwmCh1, int pwmCh2) {
-    ledcWrite(pwmCh1,0);
-    ledcWrite(pwmCh2,0);   
-}
-
-void stopDrive() {
-    stopMotor(leftPwmChannelFwd);
-    stopMotor(leftPwmChannelBwd);
-    stopMotor(rightPwmChannelFwd);
-    stopMotor(rightPwmChannelFwd);
-}
-
-void switchMotorDirection(int pwmCh, int dirPin, int speed, int newDir) {
-    stopMotor(pwmCh);
-    delay(5);
-    digitalWrite(dirPin, newDir);
-    ledcWrite(pwmCh,speed);
-}
 
 /** 
  * changes carriage height
@@ -502,6 +334,7 @@ bool checkSwitchHit(uint32_t switch_id) {
 
 /**
  * Runs the homing sequence for the robot
+ * NEEDS FULL REWRITE - COMMENTED OUT FOR NOW
  */
 void home()
 {
@@ -511,7 +344,7 @@ void home()
      * Setting all servo motor positions to 0
      */
 
-    uint32_t switchHit;
+    // uint32_t switchHit;
     /*
     SG90Pos = 0;
     DSPos = 0;
@@ -523,68 +356,67 @@ void home()
     */
 
     // find limits of the claw
-    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 0);
-    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-    if (switchHit == 3)
-    {
-        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
-    }
-    else if (switchHit == 4)
-    {
-        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
-    }
+    // driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 0);
+    // xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    // if (switchHit == 3)
+    // {
+    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    // }
+    // else if (switchHit == 4)
+    // {
+    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    // }
 
-    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 1);
-    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-    if (switchHit == 3)
-    {
-        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
-    }
-    else if (switchHit == 4)
-    {
-        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
-    }
-    stopMotor(clawExtPwmChannelExt,clawExtPwmChannelRet);
+    // driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 1);
+    // xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    // if (switchHit == 3)
+    // {
+    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    // }
+    // else if (switchHit == 4)
+    // {
+    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    // }
+    // stopMotor(clawExtPwmChannelExt,clawExtPwmChannelRet);
 
-    driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 0);
-    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-    if (switchHit == 1)
-    {
-        stopMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown);
-    }
-    else if (switchHit == 2)
-    {
-        driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 1);
-        xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-        stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
-    }
+    // driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 0);
+    // xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    // if (switchHit == 1)
+    // {
+    //     stopMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown);
+    // }
+    // else if (switchHit == 2)
+    // {
+    //     driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 1);
+    //     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    //     stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
+    // }
 }
 
 /**
+ * OBSOLETE - NO LONGER USING PCNT
  * sets up the PCNT counter using the two rotaryEncoderPins, an overflow limit of 10000,
  * and a filter time of  1000 clock cycles.
  */
 void rotaryEncoderSetup()
 {
     pcnt_config_t pcnt_config = {
-        .pulse_gpio_num = rotaryEncoderPinA, // Only pulse pin (A)
-        .ctrl_gpio_num = rotaryEncoderPinB, // Added direction pin B
+        .pulse_gpio_num = rotaryA, // Only pulse pin (A)
+        .ctrl_gpio_num = rotaryB, // Added direction pin B
         .lctrl_mode = PCNT_MODE_REVERSE,
         .hctrl_mode = PCNT_MODE_KEEP,
         .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
         .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
-        .counter_h_lim = 1000, // High limit (for overflow check)
+        .counter_h_lim = 100, // High limit (for overflow check)
         .counter_l_lim = 0,      // Low limit (optional)
         .unit = PCNT_UNIT,
         .channel = PCNT_CHANNEL_0,
     };
-    pinMode(extraGND,OUTPUT);
-    digitalWrite(extraGND,LOW);
 
     pcnt_unit_config(&pcnt_config);
 
     // Optional: filter out noise shorter than 1000 clock cycles
-    pcnt_set_filter_value(PCNT_UNIT, 1000);
+    pcnt_set_filter_value(PCNT_UNIT, 100);
     pcnt_filter_enable(PCNT_UNIT);
 
     pcnt_counter_pause(PCNT_UNIT);
@@ -605,7 +437,6 @@ void IRAM_ATTR carriageLowPressedISR()
     // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     // xTaskNotifyFromISR(lower_switch_handle, LOW_SWITCH, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
     // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    // carriageHighSwitchHit=false;
     // BaseType_t hpw = pdFALSE;
     // xTaskNotifyFromISR(home_handle, 0x01, eSetBits, &hpw);
     // portYIELD_FROM_ISR(&hpw);
@@ -616,7 +447,6 @@ void IRAM_ATTR carriageHighPressedISR()
     // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     // xTaskNotifyFromISR(upper_switch_handle, HIGH_SWITCH, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
     // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    // carriageLowSwitchHit=false;
     // BaseType_t hpw = pdFALSE;
     // xTaskNotifyFromISR(home_handle, 0x02, eSetBits, &hpw);
     // portYIELD_FROM_ISR(&hpw);
@@ -632,6 +462,19 @@ void IRAM_ATTR clawFullExtensionPressedISR()
 
 void IRAM_ATTR clawFullRetractionPressedISR() {
     clawFullyRetracted = true;
+}
+
+void IRAM_ATTR encoderRead() {
+    int mostSignificantBit = digitalRead(rotaryA);
+    int leastSignificantBit = digitalRead(rotaryB); 
+    int bitEncodedValue = (mostSignificantBit << 1) | leastSignificantBit;
+    if (bitEncodedValue != lastEncodedBitValue) {
+    int bothEncoded = (lastEncodedBitValue  << 2) | bitEncodedValue;
+    rotaryPosition = rotaryPosition + lookupTable[bothEncoded & 0x0F];
+    }
+    lastEncodedBitValue = bitEncodedValue;
+
+    isrTrigger++;
 }
 
 // freeRTOS tasks
@@ -834,13 +677,25 @@ void idle_task(void *parameters)
     vTaskDelete(NULL);
 }
 
+void test_drive(void *parameters) {
+    // DriveMotors* robot = static_cast<DriveMotors*>(parameters);
+    // for (;;) {
+    //     Serial.println("before switch");
+    //     robot->driveLeftMotor(speed,HIGH);
+    //     Serial.println(leftMotor->currentDirection);
+    //     vTaskDelay(1000);
+    //     Serial.println("after switch");
+    //     robot->driveRightMotor(speed,LOW);
+    //     vTaskDelay((1000/pwmFreq) / portTICK_PERIOD_MS);
+    // }
+}
 
 // add more functions here
 
 void setup()
 {
     // put your setup code here, to run once:
-    if (run) {
+    if (run) { // WILL NEED FULL REWRITE
         // initialize UART connection to the Pi
         Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
         Serial2Pi.write("Hello from the ESP32!");
@@ -848,8 +703,8 @@ void setup()
         // initialize basic pin connections
 
         // needs to be pull up for encoder to function properly (I think <-- TO BE TESTED)
-        pinMode(rotaryEncoderPinA, INPUT_PULLUP);
-        pinMode(rotaryEncoderPinB, INPUT_PULLUP);
+        pinMode(rotaryA, INPUT_PULLUP);
+        pinMode(rotaryB, INPUT_PULLUP);
 
         // initialize adc channels for pwm signals to operate drive
         adc1_config_width(ADC_WIDTH_BIT_12);
@@ -937,6 +792,27 @@ void setup()
         //     &drive_handle // task handle
         // );
         Serial.begin(9600);
+        // leftMotor = new Motor(0);
+        // rightMotor = new Motor(1);
+        // leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
+        // rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
+        // leftMotor->attachPins(pwmOut1, dirOut1);
+        // rightMotor->attachPins(pwmOut2, dirOut2);
+        // robot = new DriveMotors(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+        //
+        //
+        // xTaskCreate(
+        //     test_drive,
+        //     "Testing Drive",
+        //     4000,
+        //     &robot,
+        //     0,
+        //     NULL);
+
+        // pinMode(rotaryA, INPUT_PULLUP);
+        // pinMode(rotaryB, INPUT_PULLUP);
+        // attachInterrupt(rotaryA, encoderRead, CHANGE);
+        //PCNTSetup();
         
         // rotaryEncoderSetup();
 
@@ -986,31 +862,23 @@ void setup()
 
 void loop()
 {
-    // if (!rotationTested) {
-    //     testRotation();
-    //     rotationTested=true;
-    // }
-
-    // Serial.println("telling task to start");
-    // xTaskNotify(raise_carriage_handle,!carriageHigh,eSetValueWithOverwrite);
-    // delay(5000);
-
-    // carriage/claw mvt
-    // moveCarriage(!carriageHigh);
-    // // extendClaw(outwards);
-    // Serial.println("resetting");
-    // // outwards = !outwards;
-    // delay(200);
-    
-
-    //rotary encoder
-    // int16_t count = 0;
-    // pcnt_get_counter_value(PCNT_UNIT, &count);
-    // Serial.print("Encoder Count: ");
-    // Serial.println(count);
-    
     if (!run) {
         // PUT TEST CODE HERE
+
+        // if (!rotationTested) {
+        //     testRotation();
+        //     rotationTested=true;
+        // }
+        // Serial.print("A: ");
+        // Serial.print(digitalRead(rotaryA));
+        // Serial.print(" B ");
+        // Serial.print(digitalRead(rotaryB));
+        // Serial.print(" ISR: ");
+        // Serial.print(isrTrigger);
+        // Serial.print(" ");
+        // Serial.println(rotaryPosition);
+        // // robot.driveStraight(2000,1);
+        // delay(400);
 
         //driving code
         // drive(speed, true);
