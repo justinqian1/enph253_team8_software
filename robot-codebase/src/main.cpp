@@ -648,16 +648,10 @@ void idle_task(void *parameters)
 }
 
 void test_drive(void *parameters) {
-    // DriveMotors* robot = static_cast<DriveMotors*>(parameters);
-    // for (;;) {
-    //     Serial.println("before switch");
-    //     robot->driveLeftMotor(speed,HIGH);
-    //     Serial.println(leftMotor->currentDirection);
-    //     vTaskDelay(1000);
-    //     Serial.println("after switch");
-    //     robot->driveRightMotor(speed,LOW);
-    //     vTaskDelay((1000/pwmFreq) / portTICK_PERIOD_MS);
-    // }
+    for (;;) {
+       robot.drivePID(1095,350,350);
+        vTaskDelay(pdMS_TO_TICKS(4));
+    }
 }
 
 // add more functions here
@@ -787,6 +781,7 @@ void setup()
         // rotaryEncoderSetup();
 
         // carriage mvt limit switches
+        /*
         pinMode(carriageLOW, INPUT_PULLUP);
         pinMode(carriageHIGH, INPUT_PULLUP);
         attachInterrupt(digitalPinToInterrupt(carriageLOW), carriageLowPressedISR, RISING); 
@@ -823,11 +818,19 @@ void setup()
             &poll_switch_handle   // Handle
         );
 
-    
+    */
         // DRIVING
+        xTaskCreate(
+            test_drive,
+            "Drive",
+            4096,
+            nullptr,
+            1,
+            nullptr);
         // configIRSensors();
         // attachDriveMotorPins(true);
     }
+
 }
 
 void loop()

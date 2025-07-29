@@ -19,10 +19,10 @@ constexpr int carriageServoPwmChannel = 8;
 constexpr int clawClosingServoPwmChannel = 9;
 
 // ESP32 pins
-constexpr int leftDriveFwdPin = 8; // outputs the pwm channel according to ledcAttachPin
-constexpr int leftDriveBwdPin = 7;
-constexpr int rightDriveFwdPin = 22;
-constexpr int rightDriveBwdPin = 19;
+constexpr int leftDriveFwdPin = 22; // outputs the pwm channel according to ledcAttachPin
+constexpr int leftDriveBwdPin = 19;
+constexpr int rightDriveFwdPin = 7;
+constexpr int rightDriveBwdPin = 8;
 constexpr int carriageUpPin = 5;
 constexpr int carriageDownPin = 10;
 constexpr int clawExtPin =  8;
