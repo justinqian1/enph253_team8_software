@@ -15,9 +15,10 @@ bool run = false;
 
 TaskHandle_t drive_handle = nullptr;
 TaskHandle_t grab_handle = nullptr;
-TaskHandle_t reverse_handle = nullptr;
-TaskHandle_t raise_basket_handle = nullptr;
 TaskHandle_t home_handle = nullptr;
+TaskHandle_t raise_carriage_handle = nullptr;
+TaskHandle_t test_raise_carriage_handle = nullptr;
+TaskHandle_t poll_switch_handle = nullptr;
 TaskHandle_t full_turn_handle = nullptr;
 TaskHandle_t detect_handle = nullptr;
 TaskHandle_t idle_handle = nullptr;
@@ -79,13 +80,12 @@ volatile bool carriageLowSwitchHit = false;
 portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 // servos
-
 // for closing the claw
-CustomServo SG90(SG90Pin, clawClosingPWMChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
+CustomServo SG90(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
 // uint32_t SG90Pos = 0;
 
 // for rotating turret
-CustomServo MG996R(MG996RPin,carriageServoPWMChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
+CustomServo MG996R(MG996RPin,carriageServoPwmChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
 //uint32_t MG996RPos = 0;
 
 //  motor declarations
@@ -103,10 +103,10 @@ int distToTape();
 double angleToCenter(double petX);
 void driveMotor(int pwmCh, int dirPin, int speed, int dir);
 void switchMotorDirection(int pwmCh, int dirPin, int speed, int newDir);
-void drive(int avgSpeedInput);
+void drive(int avgSpeedInput, bool andre);
 void attachMotorPins(int pwmChannel, int pwmPin, int dirPin);
 void attachAndreMotorPins(int pwmCh1, int pwmCh2, int pwmPin1, int pwmPin2);
-void attachDriveMotorPins();
+void attachDriveMotorPins(bool andre);
 void configIRSensors();
 void driveMotor(int pwmCh, int dirPin, int speed, int dir);
 void driveAndreMotor(int pwmCh1, int pwmCh2, int speed, int dir) ;
@@ -137,7 +137,7 @@ void resetVars() {
     closeEnough = false;
     clawCentered = false;
     anglePastThreshold = false;
-    speed=1900;
+    speed=defaultSpeed;
 }
 
 /**
@@ -194,7 +194,7 @@ double angleToCenter(double petX) {
  * drives the robot forward with PID control
  * @param avgSpeedInput the average speed of the robot while driving
  */
-void drive(int avgSpeedInput)
+void drive(int avgSpeedInput, bool andre)
 {
     last_distance = distance;
     distance = distToTape();
@@ -214,31 +214,29 @@ void drive(int avgSpeedInput)
     leftSpeed = constrain(avgSpeedInput - ctrl, minSpeed, maxSpeed);
     rightSpeed = constrain(avgSpeedInput + ctrl, minSpeed, maxSpeed);
 
-    /* 
-    // Greg bridge
-    digitalWrite(dirOut1, dir1);
-    digitalWrite(dirOut2, dir2); 
-    ledcWrite(leftPwmChannel,leftSpeed);
-    ledcWrite(rightPwmChannel,rightSpeed);
-    */
-
-    //Andre bridge
-    ledcWrite(leftPwmChannelFwd, leftSpeed);
-    ledcWrite(rightPwmChannelFwd, rightSpeed);
-    ledcWrite(leftPwmChannelBwd, 0);
-    ledcWrite(rightPwmChannelBwd, 0);
-
+    if (andre) {
+        ledcWrite(leftPwmChannelFwd, leftSpeed);
+        ledcWrite(rightPwmChannelFwd, rightSpeed);
+        ledcWrite(leftPwmChannelBwd, 0);
+        ledcWrite(rightPwmChannelBwd, 0);
+    } else { // Greg bridge
+        digitalWrite(dirOut1, dir1);
+        digitalWrite(dirOut2, dir2); 
+        ledcWrite(leftPwmChannelFwd,leftSpeed);
+        ledcWrite(rightPwmChannelFwd,rightSpeed);
+    }
+    
     leftVal = adc1_get_raw(ADC1_CHANNEL_6);
     rightVal = adc1_get_raw(ADC1_CHANNEL_7);
 
-    // Serial.print("Left reading:");
-    // Serial.print(leftVal);
-    // Serial.print("   Right reading:");
-    // Serial.println(rightVal);
-    // Serial.print("Speed left:");
-    // Serial.println(leftSpeed);
-    // Serial.print("Speed right:");
-    // Serial.println(rightSpeed);
+    Serial.print("Left reading:");
+    Serial.print(leftVal);
+    Serial.print("   Right reading:");
+    Serial.println(rightVal);
+    Serial.print("Speed left:");
+    Serial.println(leftSpeed);
+    Serial.print("Speed right:");
+    Serial.println(rightSpeed);
 }
 
 void attachMotorPins(int pwmChannel, int pwmPin, int dirPin) {
@@ -254,16 +252,26 @@ void attachAndreMotorPins(int pwmCh1, int pwmCh2, int pwmPin1, int pwmPin2) {
     ledcAttachPin(pwmPin2, pwmCh2);
 }
 
-void attachDriveMotorPins() {
-    ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
-    ledcSetup(leftPwmChannelBwd, pwmFreq, 12);
-    ledcAttachPin(pwmOut1, leftPwmChannelFwd);
-    ledcAttachPin(dirOut1, leftPwmChannelBwd);
+void attachDriveMotorPins(bool andre) {    
+    //andre bridge
+    if (andre) {
+        ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
+        ledcSetup(leftPwmChannelBwd, pwmFreq, 12);
+        ledcAttachPin(pwmOut1, leftPwmChannelFwd);
+        ledcAttachPin(dirOut1, leftPwmChannelBwd);
 
-    ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
-    ledcSetup(rightPwmChannelBwd, pwmFreq, 12);
-    ledcAttachPin(dirOut2, rightPwmChannelFwd);
-    ledcAttachPin(pwmOut2, rightPwmChannelBwd);
+        ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
+        ledcSetup(rightPwmChannelBwd, pwmFreq, 12);
+        ledcAttachPin(dirOut2, rightPwmChannelFwd);
+        ledcAttachPin(pwmOut2, rightPwmChannelBwd);
+    } else {     //greg bridge
+        ledcSetup(leftPwmChannelFwd, pwmFreq, 12);
+        ledcSetup(rightPwmChannelFwd, pwmFreq, 12);
+        ledcAttachPin(pwmOut1, leftPwmChannelFwd);
+        ledcAttachPin(pwmOut2, rightPwmChannelFwd);
+        pinMode(dirOut1,OUTPUT);
+        pinMode(dirOut2, OUTPUT);
+    }
 }
 
 void configIRSensors() {
@@ -274,20 +282,27 @@ void configIRSensors() {
 }
 
 void driveMotor(int pwmCh, int dirPin, int speed, int dir) {
-    ledcWrite(pwmCh, speed);
     digitalWrite(dirPin,dir);
+    ledcWrite(pwmCh, speed);
 }
 
 void driveAndreMotor(int pwmCh1, int pwmCh2, int speed, int dir) {
-    if (dir==1) {
-        ledcWrite(pwmCh1, speed);
-    } else {
-        ledcWrite(pwmCh2, speed);
-    }
+    dir==1 ? ledcWrite(pwmCh1, speed) : ledcWrite(pwmCh2, speed);
 }
 
+/**
+ * stops greg motor
+ */
 void stopMotor(int pwmCh) {
     ledcWrite(pwmCh,0);
+}
+
+/**
+ * stops andre motor
+ */
+void stopMotor (int pwmCh1, int pwmCh2) {
+    ledcWrite(pwmCh1,0);
+    ledcWrite(pwmCh2,0);   
 }
 
 void stopDrive() {
@@ -309,23 +324,29 @@ void switchMotorDirection(int pwmCh, int dirPin, int speed, int newDir) {
  * @param up, true if moving up and false if moving down
  */
 void moveCarriage(bool up) {
-    while(!carriageHighSwitchHit && !carriageLowSwitchHit) {
-        driveMotor(carriageHeightPWMChannel,carriageMotorDir,carriageSpeed,up);
-        Serial.println(up ? "Moving carriage upwards" : "Moving carriage downwards");
-        delay(400);
-    }
-    // switch hit
-    if (carriageHighSwitchHit) {
-        Serial.println("Carriage hit high switch");
-        carriageHigh=true;
-        carriageHighSwitchHit=false;
-    } else { //low switch hit
-        Serial.println("Carriage hit low switch");
-        carriageHigh=false;
-        carriageLowSwitchHit=false;
-    }
-    Serial.print("Carriage high? ");
-    Serial.println(carriageHigh);
+    // driveAndreMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown,carriageSpeed,up);
+    Serial.println(up ? "Moving carriage upwards" : "Moving carriage downwards");
+        
+        // SwitchHit hit;
+        // portENTER_CRITICAL(&mux);
+        // hit = carriageSwitchEvent;
+        // carriageSwitchEvent = NONE;
+        // portEXIT_CRITICAL(&mux);
+
+        // if (hit != NONE) {
+        //     Serial.println(hit);
+        //     // Handle switch event
+        //     if (hit == HIGH_SWITCH) {
+        //         Serial.println("Carriage hit high switch");
+        //         carriageHigh = true;
+        //     } else {
+        //         Serial.println("Carriage hit low switch");
+        //         carriageHigh = false;
+        //     }
+        //     Serial.print("Carriage high? ");
+        //     Serial.println(carriageHigh);
+        //     break;
+        // }
 }
 
 void extendClaw (bool outwards) {
@@ -333,13 +354,13 @@ void extendClaw (bool outwards) {
         Serial2Pi.println("Claw extending");
         while (!clawFullyExtended) {
             clawFullyRetracted = false;
-            driveMotor(clawExtPWMChannel,clawExtMotorDir, clawExtSpeed, 1);
+            driveMotor(clawExtPwmChannelExt,clawExtPwmChannelRet, clawExtSpeed, 1);
         }
     } else {
         Serial2Pi.println("Claw retracting");
         while (!clawFullyRetracted) {
             clawFullyExtended = false;
-            driveMotor(clawExtPWMChannel,clawExtMotorDir, clawExtSpeed, 0);
+            driveMotor(clawExtPwmChannelExt,clawExtPwmChannelRet, clawExtSpeed, 0);
         }
     }
     // on interrupt (switch hit)
@@ -366,13 +387,14 @@ void closeClaw(bool close) {
  * picks up pet
  */
 void pickUpPet() {
-    if (carriageHigh != heightsForPickup[petsPickedUp]) {
-        moveCarriage(heightsForPickup[petsPickedUp]);
+    bool targetHeight = heightsForPickup[petsPickedUp];
+    if (carriageHigh != targetHeight) {
+        xTaskNotify(raise_carriage_handle, targetHeight, eSetValueWithOverwrite); // doesn't work rn since we need it to return
     }
     extendClaw(true);
     // receive input from hall effect
     closeClaw(true);
-    delay(500);
+    delay(1000);
     petsPickedUp++;
     Serial2Pi.printf("Pet picked up!\n");
     return dropPetInBasket(); // START DROP SEQUENCE
@@ -380,7 +402,7 @@ void pickUpPet() {
 
 void dropPetInBasket() {
     if (!carriageHigh) {
-        moveCarriage(true); // moves carriage up if it's low
+        xTaskNotify(raise_carriage_handle, true, eSetValueWithOverwrite); // moves carriage up if it's low; DOESN'T WORK RN
     }
     
     //rotate to max angle
@@ -432,6 +454,53 @@ void testRotation() {
 }
 
 /**
+ * checks for a specific limit switch being hit
+ * @param switch_id the switch id to check
+ *                  MUST be between 1-4
+ */
+bool checkSwitchHit(uint32_t switch_id) {
+    bool result;
+    switch(switch_id) {
+        case CARRIAGE_HIGH_SWITCH:
+            result = analogRead(carriageHIGH) > limitSwitchActiveThreshold;
+            if (result) {
+                carriageHigh=true;
+                xTaskNotifyGive(raise_carriage_handle);
+                Serial.println("Carriage high switch hit");
+            }
+            break;
+        case CARRIAGE_LOW_SWITCH:
+            result = analogRead(carriageLOW) > limitSwitchActiveThreshold;
+            if (result) {
+                carriageHigh=false;
+                xTaskNotifyGive(raise_carriage_handle);
+                Serial.println("Carriage low switch hit");
+            }
+            break;
+        case CLAW_EXT_SWITCH:
+            result = analogRead(clawExtendedSwitch) > limitSwitchActiveThreshold;
+            if (result) {
+                clawFullyExtended=true;
+                clawFullyRetracted=false;
+                Serial.println("Claw full extension switch hit");
+            }
+            break;
+        case CLAW_RET_SWITCH:
+            result = analogRead(clawRetractedSwitch) > limitSwitchActiveThreshold;
+            if (result) {
+                clawFullyExtended=false;
+                clawFullyRetracted=true;
+                Serial.println("Claw full retraction switch hit");
+            }
+            break;
+        default:
+            Serial.println("Error: unknown switch ID");
+            return true;
+    }
+    return result;
+}
+
+/**
  * Runs the homing sequence for the robot
  */
 void home()
@@ -454,7 +523,7 @@ void home()
     */
 
     // find limits of the claw
-    driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 0);
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 0);
     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
     if (switchHit == 3)
     {
@@ -465,7 +534,7 @@ void home()
         pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
     }
 
-    driveMotor(clawExtPWMChannel, clawExtMotorDir, homeSpeed, 1);
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 1);
     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
     if (switchHit == 3)
     {
@@ -475,19 +544,19 @@ void home()
     {
         pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
     }
-    stopMotor(clawExtPWMChannel);
+    stopMotor(clawExtPwmChannelExt,clawExtPwmChannelRet);
 
-    driveMotor(carriageHeightPWMChannel, carriageMotorDir, homeSpeed, 0);
+    driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 0);
     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
     if (switchHit == 1)
     {
-        stopMotor(carriageHeightPWMChannel);
+        stopMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown);
     }
     else if (switchHit == 2)
     {
-        driveMotor(carriageHeightPWMChannel, carriageMotorDir, homeSpeed, 1);
+        driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 1);
         xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-        stopMotor(carriageHeightPWMChannel);
+        stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
     }
 }
 
@@ -533,8 +602,10 @@ void IRAM_ATTR startButtonPressedISR()
 
 void IRAM_ATTR carriageLowPressedISR()
 {
-    carriageLowSwitchHit = true;
-    carriageHighSwitchHit=false;
+    // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    // xTaskNotifyFromISR(lower_switch_handle, LOW_SWITCH, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+    // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    // carriageHighSwitchHit=false;
     // BaseType_t hpw = pdFALSE;
     // xTaskNotifyFromISR(home_handle, 0x01, eSetBits, &hpw);
     // portYIELD_FROM_ISR(&hpw);
@@ -542,7 +613,9 @@ void IRAM_ATTR carriageLowPressedISR()
 
 void IRAM_ATTR carriageHighPressedISR()
 {
-    carriageHighSwitchHit=true;
+    // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    // xTaskNotifyFromISR(upper_switch_handle, HIGH_SWITCH, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
+    // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     // carriageLowSwitchHit=false;
     // BaseType_t hpw = pdFALSE;
     // xTaskNotifyFromISR(home_handle, 0x02, eSetBits, &hpw);
@@ -577,7 +650,7 @@ void drive_task(void *parameters)
     for (;;)
     {
 
-        drive(speed);
+        drive(speed,true);
         Serial2Pi.printf("driving");
 
         // if (millis() - startTime > 90000)
@@ -671,6 +744,70 @@ void detect_task(void *parameters)
     }
 }
 
+void raise_carriage_task(void *parameters) {
+    uint32_t direction; // encodes the direction of motion (1=up,0=down)
+
+    while (1) {
+        xTaskNotifyWait(0,0xFFFFFFFF,&direction,portMAX_DELAY); // Wait forever until ISR notifies
+
+        moveCarriage(direction);
+        xTaskNotify(poll_switch_handle,direction+1,eSetValueWithOverwrite); // start switch poll
+        // high switch has id 2, low switch has id 1 hence the direction+1
+
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait until switch poll finishes
+        Serial.println("Switch poll finished; raise carriage task exiting");
+        // stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
+        
+        //xTaskNotifyGive(test_raise_carriage_handle);
+    }
+}
+
+void test_raise_carriage_task(void *parameters) {
+    uint32_t dir = 1;
+    while (1) {
+        // Send notify to raise_carriage_task to start movement
+        xTaskNotify(raise_carriage_handle, dir, eSetValueWithOverwrite);
+        Serial.println("Notified raise_carriage_task");
+
+        // wait for test to be done
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        dir == 1 ? dir = 0 : dir = 1;
+        Serial.println("Carriage test complete");
+        Serial.println("carriageHigh: ");
+        Serial.println(carriageHigh);
+        // Wait before starting again
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
+void poll_switch_task(void *parameters) {
+    uint32_t switchToPoll;
+    while (1) {
+        xTaskNotifyWait(0,0,&switchToPoll,portMAX_DELAY);
+        int count = 0;
+        // error check
+        if (switchToPoll < minSwitchID || switchToPoll > maxSwitchID) {
+            // switchToPoll value invalid
+            Serial.print("Error: cannot poll switch ");
+            Serial.println(switchToPoll);
+            vTaskDelete(NULL);
+            return;
+        }
+
+        // poll switch
+        Serial.print("Polling switch ");
+        Serial.println(switchToPoll);
+        while (!checkSwitchHit(switchToPoll)) {
+            if (count % (1000/switchPollFrequency) == 0) {
+                Serial.println("Still waiting for switch to hit...");
+            }
+            count++;
+            vTaskDelay(pdTICKS_TO_MS(switchPollFrequency));
+        }
+        Serial.println("Poll switch task exiting");
+    }
+}
+
 /**
  * this task handles operating the servo attached to the rotating base to follow the nearest pet according to the Pi Cam.
  * It is constantly updated by the detect_task and runs independently of the driving function.
@@ -727,11 +864,11 @@ void setup()
         ledcAttachPin(pwmOut1, leftPwmChannelFwd);
         ledcAttachPin(pwmOut2, rightPwmChannelFwd); // both motors controlled by same pwm channel
 
-        ledcSetup(carriageHeightPWMChannel, 250, 12);
-        ledcAttachPin(carriageMotorPWM, carriageHeightPWMChannel);
+        //ledcSetup(carriageHeightPWMChannel, 250, 12);
+        //ledcAttachPin(carriageMotorPWM, carriageHeightPWMChannel);
 
-        ledcSetup(clawExtPWMChannel, 250, 12);
-        ledcAttachPin(clawExtMotorPWM, clawExtPWMChannel);
+        //ledcSetup(clawExtPWMChannel, 250, 12);
+        //ledcAttachPin(clawExtMotorPWM, clawExtPWMChannel);
 
         // attach pins for ISRs
 
@@ -799,6 +936,8 @@ void setup()
         //     1,            // priority
         //     &drive_handle // task handle
         // );
+        Serial.begin(9600);
+        
         // rotaryEncoderSetup();
 
         // carriage mvt limit switches
@@ -813,27 +952,55 @@ void setup()
         attachInterrupt(digitalPinToInterrupt(clawExtendedSwitch), clawFullExtensionPressedISR, RISING); 
         attachInterrupt(digitalPinToInterrupt(clawRetractedSwitch), clawFullRetractionPressedISR, RISING);
 
-        Serial.begin(9600);
+        xTaskCreate(
+            raise_carriage_task,  // Task function
+            "Carriage up/down",   // Name
+            4096,                 // Stack size
+            NULL,                 // Parameters
+            3,                    // Priority
+            &raise_carriage_handle // Handle
+        );
+        xTaskCreate(
+            test_raise_carriage_task,  // Task function
+            "Test carriage",   // Name
+            4096,                 // Stack size
+            NULL,                 // Parameters
+            3,                    // Priority
+            &test_raise_carriage_handle // Handle
+        );
+        xTaskCreate(
+            poll_switch_task,     // Task function
+            "Poll switches",      // Name
+            4096,                 // Stack size
+            NULL,                 // Parameters
+            4,                    // Priority
+            &poll_switch_handle   // Handle
+        );
+
+    
         // DRIVING
         // configIRSensors();
-        // attachDriveMotorPins();
+        // attachDriveMotorPins(true);
     }
 }
 
-bool outwards=true;
 void loop()
 {
     // if (!rotationTested) {
     //     testRotation();
     //     rotationTested=true;
     // }
-    
-    //carriage/claw mvt
-    moveCarriage(!carriageHigh);
-    // extendClaw(outwards);
-    Serial.println("resetting");
-    // outwards = !outwards;
-    delay(200);
+
+    // Serial.println("telling task to start");
+    // xTaskNotify(raise_carriage_handle,!carriageHigh,eSetValueWithOverwrite);
+    // delay(5000);
+
+    // carriage/claw mvt
+    // moveCarriage(!carriageHigh);
+    // // extendClaw(outwards);
+    // Serial.println("resetting");
+    // // outwards = !outwards;
+    // delay(200);
     
 
     //rotary encoder
@@ -846,7 +1013,7 @@ void loop()
         // PUT TEST CODE HERE
 
         //driving code
-        // drive(speed);
+        // drive(speed, true);
         // delay(2);
     }
 

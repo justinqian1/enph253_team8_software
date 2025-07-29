@@ -13,10 +13,12 @@ constexpr int leftPwmChannelFwd = 0;
 constexpr int leftPwmChannelBwd = 1;
 constexpr int rightPwmChannelFwd = 2;
 constexpr int rightPwmChannelBwd = 3;
-constexpr int carriageHeightPWMChannel = 4;
-constexpr int clawExtPWMChannel = 5;
-constexpr int carriageServoPWMChannel = 6;
-constexpr int clawClosingPWMChannel = 7;
+constexpr int carriageHeightPwmChannelUp = 4;
+constexpr int carriageHeightPwmChannelDown = 5;
+constexpr int clawExtPwmChannelExt = 6;
+constexpr int clawExtPwmChannelRet = 7;
+constexpr int carriageServoPwmChannel = 8;
+constexpr int clawClosingServoPwmChannel = 9;
 
 // ESP32 pins
 constexpr int pwmOut1 = 8; // outputs the pwm channel according to ledcAttachPin
@@ -45,7 +47,10 @@ constexpr int rotaryEncoderPinB = 15;
 constexpr int extraGND = 4;
 constexpr int hallSensorPin = 36;
 
-// constants
+// general constants
+constexpr int pwmFreq = 500;
+
+// driving related constants
 constexpr int thresholdL = 1400;
 constexpr int thresholdR = 2200;
 constexpr int defaultSpeed = 1800;
@@ -54,9 +59,8 @@ constexpr int minSpeed = 500;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
-constexpr int defaultKProp = 600; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 300;
-constexpr int pwmFreq = 500;
+constexpr int defaultKProp = 0; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 0;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
@@ -68,7 +72,6 @@ constexpr double areaThresholdForPickup=5000.0;
 // misc cv params
 constexpr int imgSize=320;
 constexpr double horizontal_fov=62.2;
-constexpr int pwmChannel=0;
 
 // carriage/servo setup
 constexpr int servoFreq = 50;
@@ -76,10 +79,11 @@ constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
 constexpr int carriageForwardPos=120;
 constexpr int carriageMaxLeftPos=0;
-constexpr int carriageMaxRightPos=240;
+constexpr int carriageMaxRightPos=(int)(180.0*MG996RMultiplier);
 constexpr double MG996RMultiplier = 1.316;
 
-constexpr float encoderCountToInches = 0.05;
+// limit switch related
+constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
 constexpr int clawExtSpeed=2000;
@@ -91,6 +95,18 @@ constexpr int clawClosedPos = 90;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
+
+// limit switch stuff
+enum SwitchHit : uint8_t {
+    NONE = 0,
+    CARRIAGE_LOW_SWITCH = 1,
+    CARRIAGE_HIGH_SWITCH = 2,
+    CLAW_EXT_SWITCH = 3,
+    CLAW_RET_SWITCH = 4
+};
+constexpr uint32_t minSwitchID=1;
+constexpr uint32_t maxSwitchID=4;
+constexpr int switchPollFrequency = 20;
 
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;
