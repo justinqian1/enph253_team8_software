@@ -11,7 +11,6 @@
 class RotaryEncoder {
 public:
     RotaryEncoder(int pinA, int pinB);
-    RotaryEncoder(int pinA, int pinB, int min, int max);
     int read();
 
     void update();
@@ -21,8 +20,11 @@ public:
 private:
     int pinA;
     int pinB;
-    int min = -200;
-    int max = 200;
-
+    int minVal = -200;
+    int maxVal = 200;
+    int rotaryPosition = 0;
+    int lastEncodedBitValue = 0x0;
+    static RotaryEncoder* instance;
+    static constexpr int lookupTable[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
 };
 #endif //ROTARYENCODER_H
