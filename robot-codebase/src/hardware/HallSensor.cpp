@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "Hallsensor.h"
+#include "HallSensor.h"
 #include "constants.h"  /* For voltage ref and threshold*/
 
 /* serial.println(analogread(halleffect))

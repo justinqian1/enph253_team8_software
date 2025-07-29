@@ -8,11 +8,12 @@
 #include <Arduino.h>
 #include "hardware/Motor.h"
 #include "hardware/CustomServo.h"
-
+#include "hardware/HallSensor.h"
 class Claw
 {
 public:
-    Claw(CustomServo rotationServo, CustomServo grabServo, Motor carriageMotor);
+    Claw(CustomServo &rotation, CustomServo &grab, Motor &carriage, Motor &extension, HallSensor &hall);
+    void zeroAll();
     void grab();
     void extend(int distance);
     void rise(int height);
@@ -27,6 +28,8 @@ private:
     CustomServo rotationServo;
     CustomServo grabServo;
     Motor carriageMotor;
+    Motor extensionMotor;
+    HallSensor hallSensor;
     int currentAngle = 0;
     int height = 0;
     int extension = 0;
