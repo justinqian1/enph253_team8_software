@@ -15,15 +15,7 @@ class Motor : public motor_interface
      * Creates a motor object assigned to a specific PWM channel
      * @param pwmCh
      */
-    Motor(int pwmCh);
-
-    /**
-     * Assigns PWM and direction pins to a motor object
-     * @param pwmPin the pin assigned to the motor PWM
-     * @param dirPin the pin assigned to the motor direction
-     */
-    void attachPins(int pwmPin, int dirPin);
-
+    Motor(int pwmCh, int pwmPin, int directionPin);
     /**
      * drives the motor with a specified speed and direction
      * @param speed the speed at which to drive the motor, from 0 to 4095

@@ -69,7 +69,11 @@ int16_t rotaryMin = 0;
 
 // for limit switches
 volatile bool carriageSwitchHit = false;
-
+volatile int rotaryPosition = 0;
+volatile int lastEncodedBitValue  = 0;
+constexpr int lookupTable[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
+volatile int isrTrigger = 0;
+volatile unsigned long lastTime = 0;
 // servos
 
 // for closing the claw
@@ -85,13 +89,13 @@ CustomServo MG996R(MG996RPin,carriageServoPWMChannel, 90, 50, 500, 2500);
 //uint32_t MG996RPos = 0;
 
 //  motor declarations
-Motor* leftMotor;
-Motor* rightMotor;
+Motor leftMotor(0, 8, 7);
+Motor rightMotor(1, 19, 22);
 IRSensor* leftIRSensor;
 IRSensor* rightIRSensor;
 DriveMotors* robot;
 
-Motor carriageMotor(carriageHeightPWMChannel);
+//Motor carriageMotor(carriageHeightPWMChannel);
 
 // function declarations
 int distToTape();
@@ -269,7 +273,7 @@ void stopAllMotors()
  */
 void moveCarriage(bool up) {
     while(!carriageSwitchHit) {
-        carriageMotor.driveMotor(carriageSpeed,up);
+        //carriageMotor.driveMotor(carriageSpeed,up);
     }
 }
 
@@ -372,14 +376,14 @@ void home()
 void PCNTSetup()
 {
     pcnt_config_t pcnt_config = {
-        .pulse_gpio_num = rotaryEncoderPinA, // Only pulse pin (A)
-        .ctrl_gpio_num = rotaryEncoderPinB, // Added direction pin B
-        .lctrl_mode = PCNT_MODE_KEEP,
+        .pulse_gpio_num = rotaryA, // Only pulse pin (A)
+        .ctrl_gpio_num = rotaryB, // Added direction pin B
+        .lctrl_mode = PCNT_MODE_REVERSE,
         .hctrl_mode = PCNT_MODE_KEEP,
         .pos_mode = PCNT_COUNT_INC, // Count up on positive edge
         .neg_mode = PCNT_COUNT_DIS, // Ignore falling edge (or count if needed)
-        .counter_h_lim = 10000, // High limit (for overflow check)
-        .counter_l_lim = 0,      // Low limit (optional)
+        .counter_h_lim = 100, // High limit (for overflow check)
+        .counter_l_lim = -100,      // Low limit (optional)
         .unit = PCNT_UNIT,
         .channel = PCNT_CHANNEL_0,
     };
@@ -387,7 +391,7 @@ void PCNTSetup()
     pcnt_unit_config(&pcnt_config);
 
     // Optional: filter out noise shorter than 1000 clock cycles
-    pcnt_set_filter_value(PCNT_UNIT, 1000);
+    pcnt_set_filter_value(PCNT_UNIT, 100);
     pcnt_filter_enable(PCNT_UNIT);
 
     pcnt_counter_pause(PCNT_UNIT);
@@ -444,6 +448,18 @@ void IRAM_ATTR horiClawHHighPressedISR()
     portYIELD_FROM_ISR(&hpw);
 }
 
+void IRAM_ATTR encoderRead() {
+    int mostSignificantBit = digitalRead(rotaryA);
+    int leastSignificantBit = digitalRead(rotaryB); 
+    int bitEncodedValue = (mostSignificantBit << 1) | leastSignificantBit;
+    if (bitEncodedValue != lastEncodedBitValue) {
+    int bothEncoded = (lastEncodedBitValue  << 2) | bitEncodedValue;
+    rotaryPosition = rotaryPosition + lookupTable[bothEncoded & 0x0F];
+    }
+    lastEncodedBitValue = bitEncodedValue;
+
+    isrTrigger++;
+}
 // freeRTOS tasks
 
 /**
@@ -647,16 +663,16 @@ void idle_task(void *parameters)
 }
 
 void test_drive(void *parameters) {
-    DriveMotors* robot = static_cast<DriveMotors*>(parameters);
-    for (;;) {
-        Serial.println("before switch");
-        robot->driveLeftMotor(speed,HIGH);
-        Serial.println(leftMotor->currentDirection);
-        vTaskDelay(1000);
-        Serial.println("after switch");
-        robot->driveRightMotor(speed,LOW);
-        vTaskDelay((1000/pwmFreq) / portTICK_PERIOD_MS);
-    }
+    // DriveMotors* robot = static_cast<DriveMotors*>(parameters);
+    // for (;;) {
+    //     Serial.println("before switch");
+    //     robot->driveLeftMotor(speed,HIGH);
+    //     Serial.println(leftMotor->currentDirection);
+    //     vTaskDelay(1000);
+    //     Serial.println("after switch");
+    //     robot->driveRightMotor(speed,LOW);
+    //     vTaskDelay((1000/pwmFreq) / portTICK_PERIOD_MS);
+    // }
 }
 
 // add more functions here
@@ -789,22 +805,22 @@ void setup()
 
     if (!run) {
         Serial.begin(9600);
-        leftMotor = new Motor(0);
-        rightMotor = new Motor(1);
-        leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
-        rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
-        leftMotor->attachPins(pwmOut1, dirOut1);
-        rightMotor->attachPins(pwmOut2, dirOut2);
-        robot = new DriveMotors(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
-
-
-        xTaskCreate(
-            test_drive,
-            "Testing Drive",
-            4000,
-            &robot,
-            0,
-            NULL);
+        // leftMotor = new Motor(0);
+        // rightMotor = new Motor(1);
+        // leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
+        // rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
+        // leftMotor->attachPins(pwmOut1, dirOut1);
+        // rightMotor->attachPins(pwmOut2, dirOut2);
+        // robot = new DriveMotors(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+        //
+        //
+        // xTaskCreate(
+        //     test_drive,
+        //     "Testing Drive",
+        //     4000,
+        //     &robot,
+        //     0,
+        //     NULL);
         /*
         CARRIAGE MVT TESTING
         carriageMotor.attachPins(carriageMotorPWM,carriageMotorDir);
@@ -824,8 +840,16 @@ void setup()
         ledcAttachPin(pwmOut2,rightPwmChannel);
         pinMode(dirOut1,OUTPUT);
         pinMode(dirOut2,OUTPUT);
-        */
+        // */
+        // pinMode(rotaryA, INPUT_PULLUP);
+        // pinMode(rotaryB, INPUT_PULLUP);
+        // attachInterrupt(rotaryA, encoderRead, CHANGE);
+        //PCNTSetup();
     }
+        pinMode(rotaryA, INPUT_PULLUP);
+        pinMode(rotaryB, INPUT_PULLUP);
+        attachInterrupt(rotaryA, encoderRead, RISING);
+
 }
 
 void loop()
@@ -842,6 +866,17 @@ void loop()
         testServo.setAngle(0);
         delay(100);
         */
+       //  Serial.print("A: ");
+       //  Serial.print(digitalRead(rotaryA));
+       //  Serial.print(" B ");
+       //  Serial.print(digitalRead(rotaryB));
+       //  Serial.print(" ISR: ");
+       //  Serial.print(isrTrigger);
+       //  Serial.print(" ");
+       // Serial.println(rotaryPosition);
+        leftMotor.driveMotor(2000, 1);
+        rightMotor.driveMotor(2000, 1);
+        delay(4);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler

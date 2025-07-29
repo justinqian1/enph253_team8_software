@@ -5,26 +5,20 @@
 #include "Motor.h"
 #include "constants.h"
 
-Motor::Motor(int pwmCh) : pwmChannel(pwmCh)
+Motor::Motor(int pwmCh, int pwmPin, int directionPin) : pwmChannel(pwmCh), motorPWMPin(pwmPin), motorDirectionPin(directionPin)
 {
     ledcSetup(pwmCh, pwmFreq, 12);
-    Serial.print("Motor created with channel");
-    Serial.println(pwmCh);
+    ledcAttachPin(this->motorPWMPin, this->pwmChannel);
+    pinMode(this->motorDirectionPin, OUTPUT);
 }
 
-void Motor::attachPins(int pwmPin, int dirPin)
-{
-    this->motorPWMPin = pwmPin;
-    this->motorDirectionPin = dirPin;
-    ledcAttachPin(this->motorPWMPin, pwmChannel);
-    digitalWrite(this->motorDirectionPin, HIGH);
-}
+
 
 void Motor::driveMotor(int speed, int direction)
 {
     if (direction == this->currentDirection)
     {
-        ledcWrite(this->motorPWMPin, speed);
+        ledcWrite(this->pwmChannel, speed);
         Serial.println("motor driving");
     } else
     {
@@ -39,20 +33,20 @@ void Motor::driveMotor(int speed, int direction)
 
 void Motor::stopMotor()
 {
-    ledcWrite(this->motorPWMPin, 0);
+    ledcWrite(this->pwmChannel, 0);
 }
 
 void Motor::driveForward(int speed)
 {
     if (this->currentDirection == HIGH)
     {
-        ledcWrite(this->motorPWMPin, speed);
+        ledcWrite(this->pwmChannel, speed);
     } else
     {
         stopMotor();
         vTaskDelay(5 / portTICK_PERIOD_MS);
         digitalWrite(this->motorDirectionPin, HIGH);
-        ledcWrite(this->motorPWMPin, speed);
+        ledcWrite(this->pwmChannel, speed);
         this->currentDirection = HIGH;
     }
 }
@@ -61,13 +55,13 @@ void Motor::driveReverse(int speed)
 {
     if (this->currentDirection == LOW)
     {
-        ledcWrite(this->motorPWMPin, speed);
+        ledcWrite(this->pwmChannel, speed);
     } else
     {
         stopMotor();
         vTaskDelay(5 / portTICK_PERIOD_MS);
         digitalWrite(this->motorDirectionPin, LOW);
-        ledcWrite(this->motorPWMPin, speed);
+        ledcWrite(this->pwmChannel, speed);
         this->currentDirection = LOW;
     }
 }
