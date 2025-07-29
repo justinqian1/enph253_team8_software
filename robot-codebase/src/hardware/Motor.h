@@ -62,6 +62,6 @@ class Motor : public motor_interface
     int backwardPWMPin;
     int forwardPWMChannel;
     int backwardPWMChannel;
-    constexpr int deadTime = 10; // ms
+    int deadTime = 10; // ms
 };
 #endif //MOTOR_H
