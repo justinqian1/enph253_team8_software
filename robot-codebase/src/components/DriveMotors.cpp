@@ -5,6 +5,8 @@
 #include "DriveMotors.h"
 #include "hardware/Motor.h"
 
+#define ROBOT_DEBUG
+
 DriveMotors::DriveMotors(Motor &lMotor, Motor &rMotor, IRSensor &lIRSensor,
                          IRSensor &rIRSensor) : leftMotor(lMotor), rightMotor(rMotor), leftIRSensor(lIRSensor),
                                                       rightIRSensor(rIRSensor) {
@@ -51,6 +53,7 @@ void DriveMotors::drivePID(int speed, int kp,
     rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), HIGH);
     leftReading = leftIRSensor.read();
     rightReading = rightIRSensor.read();
+#ifdef ROBOT_DEBUG
     Serial.print("Left reading");
     Serial.println(leftReading);
     Serial.print("Right reading:");
@@ -59,6 +62,7 @@ void DriveMotors::drivePID(int speed, int kp,
     Serial.println(constrain(speed - ctrl, minSpeed, maxSpeed));
     Serial.print("Right speed:");
     Serial.println(constrain(speed + ctrl, minSpeed, maxSpeed));
+#endif ROBOT_DEBUG
 }
 
 void DriveMotors::stop() {
