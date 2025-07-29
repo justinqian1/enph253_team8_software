@@ -12,10 +12,13 @@ class Motor : public motor_interface
 {
     public:
     /**
-     * Creates a motor object assigned to a specific PWM channel
-     * @param pwmCh
+     * Create a motor object with two PWM channels for forward and backward, attached to two pins
+     * @param pwmChFwd the PWM channel to run forward movement
+     * @param pwmFwdPin the pin assigned to the forward PWM channel
+     * @param pwmChBkwd the PWM channel to run backward movement
+     * @param pwmBkwdPin tne pin assigned to the backward PWM channel
      */
-    Motor(int pwmCh, int pwmPin, int directionPin);
+    Motor(int pwmChFwd, int pwmFwdPin, int pwmChBkwd, int pwmBkwdPin);
     /**
      * drives the motor with a specified speed and direction
      * @param speed the speed at which to drive the motor, from 0 to 4095
@@ -44,19 +47,21 @@ class Motor : public motor_interface
      * returns the PWM channel pin
      * @return the pin for the PWM channel
      */
-    int getMotorPWMPin();
+    int getForwardPWMPin();
 
     /**
      * returns the direction pin
      * @return the pin for the direction
      */
-    int getMotorDirectionPin();
+    int getBackwardPWMPin();
 
     int currentDirection = 0;
 
     private:
-    int motorPWMPin = 0;
-    int motorDirectionPin = 0;
-    int pwmChannel;
+    int forwardPWMPin;
+    int backwardPWMPin;
+    int forwardPWMChannel;
+    int backwardPWMChannel;
+    constexpr int deadTime = 10; // ms
 };
 #endif //MOTOR_H
