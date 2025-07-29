@@ -89,8 +89,8 @@ CustomServo MG996R(MG996RPin,carriageServoPWMChannel, 90, 50, 500, 2500);
 //uint32_t MG996RPos = 0;
 
 //  motor declarations
-Motor leftMotor(0, 8, 7);
-Motor rightMotor(1, 19, 22);
+Motor leftMotor(0, 8, 1, 7);
+Motor rightMotor(2, 19, 3, 22);
 IRSensor leftIRSensor(ADC1_CHANNEL_0);
 IRSensor rightIRSensor(ADC1_CHANNEL_1);
 RobotWheels robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
@@ -368,7 +368,7 @@ void home()
         stopMotor(carriageHeightPWMChannel);
     }
 }
-
+// OBSOLETE - NO LONGER USING PCNT
 /**
  * sets up the PCNT counter using the two rotaryEncoderPins, an overflow limit of 10000,
  * and a filter time of  1000 clock cycles.

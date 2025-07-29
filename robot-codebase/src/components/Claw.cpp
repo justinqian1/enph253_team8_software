@@ -11,12 +11,18 @@ Claw::Claw(CustomServo &rotation, CustomServo &grab, Motor &carriage, Motor &ext
 }
 
 void Claw::zeroAll() {
-    // zero code heree
+    // zero code here
 }
 
-void Claw::grab() {}
+void Claw::grab() {
 
-void Claw::extend(int distance) {}
+
+}
+
+void Claw::extend(int distance) {
+
+
+}
 
 void Claw::rise(int height) {}
 
