@@ -26,7 +26,7 @@ void Motor::driveMotor(int speed, int direction)
         Serial.println("motor direction changing");
         vTaskDelay(5 / portTICK_PERIOD_MS);
         digitalWrite(this->motorDirectionPin, direction);
-        ledcWrite(this->motorPWMPin, speed);
+        ledcWrite(this->pwmChannel, speed);
         this->currentDirection = direction;
     }
 }

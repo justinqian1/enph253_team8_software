@@ -875,7 +875,7 @@ void loop()
         Serial.print(" ");
        Serial.println(rotaryPosition);
         // robot.driveStraight(2000,1);
-        // delay(4);
+         delay(400);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler
