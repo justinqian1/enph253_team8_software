@@ -650,14 +650,25 @@ void idle_task(void *parameters)
 
 void test_drive(void *parameters) {
     for (;;) {
-        robot -> driveStraight(100, 1);
+        robot -> driveLeftMotor(3000,0);
         //Serial.println("Driving!");
-        vTaskDelay(pdMS_TO_TICKS(3000));
-        robot -> driveStraight(2000,0);
-        vTaskDelay(pdMS_TO_TICKS(3000));
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        robot -> driveStraight(4095,1);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
+void full_turn_test(void *parameters) {
+    for(;;) {
+        robot -> driveLeftMotor(4095,0);
+        robot -> driveRightMotor(4095,1);
+        vTaskDelay(1000);
+        if (leftIRSensor->read() < thresholdL && rightIRSensor->read() < thresholdR)  {
+            robot -> stop();
+        }
+        vTaskDelay(4000);
+    }
+}
 // add more functions here
 
 void setup()
@@ -760,8 +771,8 @@ void setup()
         //     &drive_handle // task handle
         // );
         Serial.begin(9600);
-        rightMotor = new Motor(rightPwmChannelFwd, 20, rightPwmChannelBwd, 21);
-        leftMotor = new Motor(leftPwmChannelFwd, 8, leftPwmChannelBwd, 7);
+        rightMotor = new Motor(rightPwmChannelFwd, 19, rightPwmChannelBwd, 22);
+        leftMotor = new Motor(leftPwmChannelFwd, 20, leftPwmChannelBwd, 21);
         leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
         rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
         robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
@@ -838,8 +849,8 @@ void setup()
     */
        // DRIVING
         xTaskCreate(
-            test_drive,
-            "Drive",
+            full_turn_test,
+            "Drive Turn",
             4096,
             nullptr,
             1,
