@@ -25,6 +25,9 @@ private:
     int rotaryPosition = 0;
     int lastEncodedBitValue = 0x0;
     static RotaryEncoder* instance;
-    static constexpr int lookupTable[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
+    static constexpr int lookupTable[] = {0,-1,1,0,
+                                          1,0,0,-1,
+                                          -1,0,0,1,
+                                          0,1,-1,0};
 };
 #endif //ROTARYENCODER_H
