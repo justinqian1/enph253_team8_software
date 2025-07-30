@@ -2,23 +2,14 @@
 #include "HallSensor.h"
 #include "constants.h"  /* For voltage ref and threshold*/
 
-/* serial.println(analogread(halleffect))
-*/
-
-
-HallSensor::HallSensor(int pin) : hallPin(pin), _adcChannel(ADC1_CHANNEL_0) {
-    pinMode(pin, INPUT);
-    analogReadResolution(12); // Set ADC resolution to 12 bits
+HallSensor::HallSensor(adc1_channel_t adcCh) : _adcChannel(adcCh) {
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(adcCh, ADC_ATTEN_DB_12);
 }
-
-// HallSensor::HallSensor(adc1_channel_t adcCh) : hallPin(0), _adcChannel(adcCh) {
-//     adc1_config_width(ADC_WIDTH_BIT_12);
-//     adc1_config_channel_atten(adcCh, ADC_ATTEN_DB_12)
-// }
 
 /* Read voltage from the analog pin (scaled from raw ADC)*/
 double HallSensor::readVoltage() {
-    int sensorValue = adc1_get_raw(ADC1_CHANNEL_0); // pin 36
+    int sensorValue = adc1_get_raw(this->_adcChannel); // pin 36
     double voltage = sensorValue * (hallVoltageRef / 4095.0); /* Convert to voltage*/
     return voltage;
 }
@@ -27,7 +18,7 @@ double HallSensor::readVoltage() {
 bool HallSensor::magnetDetected(double voltage) {
     return voltage < magnetThresholdVoltage;
 }
-/*
+
 /* Read voltage, check for magnet, and format a log message*/
 /*
 String HallSensor::senseAndLog() {
