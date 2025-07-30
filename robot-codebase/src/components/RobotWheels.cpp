@@ -62,7 +62,7 @@ void RobotWheels::drivePID(int speed, int kp,
     Serial.println(constrain(speed - ctrl, minSpeed, maxSpeed));
     Serial.print("Right speed:");
     Serial.println(constrain(speed + ctrl, minSpeed, maxSpeed));
-#endif ROBOT_DEBUG
+#endif 
 }
 
 void RobotWheels::stop() {
@@ -73,6 +73,7 @@ void RobotWheels::stop() {
 void RobotWheels::driveStraight(int speed, int direction) {
     driveLeftMotor(speed, direction);
     driveRightMotor(speed, direction);
+    //Serial.println("Driving both at speed");
 }
 
 void RobotWheels::driveLeftMotor(int speed, int direction) {

@@ -6,16 +6,18 @@
 #include "constants.h"
 
 // comment this out to remove debugging code
-#define MOTOR_DEBUG
+//#define MOTOR_DEBUG
 #define FORWARD 1
 #define BACKWARD 0
 
+int created = 0;
 Motor::Motor(int pwmChFwd, int pwmFwdPin, int pwmChBkwd, int pwmBkwdPin) : forwardPWMChannel(pwmChFwd), forwardPWMPin(pwmFwdPin), backwardPWMChannel(pwmChBkwd), backwardPWMPin(pwmBkwdPin)
 {
     ledcSetup(forwardPWMChannel, pwmFreq, 12);
     ledcSetup(backwardPWMChannel, pwmFreq, 12);
     ledcAttachPin(this->forwardPWMPin, forwardPWMChannel);
     ledcAttachPin(this->backwardPWMPin, backwardPWMChannel);
+    created = 1;
     #ifdef MOTOR_DEBUG
     Serial.println("Motor created!");
     #endif 
@@ -54,6 +56,8 @@ void Motor::driveMotor(int speed, int direction)
             // do nothing
             break;
     }
+    //Serial.print("Motor:");
+    //Serial.println(created);
 }
 
 void Motor::stopMotor()
