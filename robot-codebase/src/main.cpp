@@ -8,6 +8,7 @@
 #include "constants.h"
 #include "hardware/CustomServo.h"
 #include "hardware/Motor.h"
+#include "hardware/RotaryEncoder.h"
 #include "components/RobotWheels.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
@@ -95,6 +96,7 @@ Motor* leftMotor;//(leftPwmChannelFwd, 8, leftPwmChannelBwd, 7);
 IRSensor* leftIRSensor;//(ADC1_CHANNEL_6);
 IRSensor* rightIRSensor;//(ADC1_CHANNEL_7);
 RobotWheels* robot;//(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+RotaryEncoder* encoder;
 
 Motor carriageMotor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
 Motor clawExtMotor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
@@ -801,6 +803,7 @@ void setup()
         leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
         rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
         robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
+        encoder = new RotaryEncoder(4,2);
         // ledcSetup(0,pwmFreq, 12);
         // ledcSetup(1,pwmFreq, 12);
         // ledcSetup(2,pwmFreq,12);
@@ -831,7 +834,7 @@ void setup()
         // attachInterrupt(rotaryA, encoderRead, CHANGE);
 
         // limit switches
-        setupLimitSwitches();
+       // setupLimitSwitches();
 
         // xTaskCreate(
         //     raise_carriage_task,  // Task function
@@ -917,6 +920,8 @@ void loop()
         // ledcWrite(leftPwmChannelFwd,3000);
         // delay(1000);
         //robot.driveStraight(3000,1);
+        Serial.println(encoder->read());
+        delay(10);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler

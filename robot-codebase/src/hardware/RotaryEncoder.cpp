@@ -6,6 +6,8 @@
 
 #include <esp32-hal-gpio.h>
 
+RotaryEncoder* RotaryEncoder::instance = nullptr;
+constexpr int RotaryEncoder::lookupTable[16];
 RotaryEncoder::RotaryEncoder(int pinA, int pinB) :  pinA(pinA), pinB(pinB) {
     instance = this;
     pinMode(pinA, INPUT_PULLUP);
@@ -29,7 +31,6 @@ void RotaryEncoder::update() {
 }
 
 void IRAM_ATTR RotaryEncoder::handleInterrupt() {
-    if (instance) {
-        instance->update();
-    }
+    instance->update();
+    
 }
