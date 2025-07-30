@@ -19,20 +19,20 @@ constexpr int carriageServoPwmChannel = 8;
 constexpr int clawClosingServoPwmChannel = 9;
 
 // ESP32 pins
-constexpr int leftDriveFwdPin = 22; // outputs the pwm channel according to ledcAttachPin
-constexpr int leftDriveBwdPin = 19;
-constexpr int rightDriveFwdPin = 7;
-constexpr int rightDriveBwdPin = 8;
+constexpr int leftDriveFwdPin =20; // outputs the pwm channel according to ledcAttachPin
+constexpr int leftDriveBwdPin = 21;
+constexpr int rightDriveFwdPin = 19;
+constexpr int rightDriveBwdPin = 22;
 constexpr int carriageUpPin = 5;
 constexpr int carriageDownPin = 10;
-constexpr int clawExtPin =  8;
-constexpr int clawRetPin = 7;
+constexpr int clawExtPin =  7;
+constexpr int clawRetPin = 8;
 
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
 constexpr int SG90Pin = 14;
 //constexpr int DSPin = 12;
-constexpr int MG996RPin = 12;
+constexpr int MG996RPin = 12; // ds1 on esp
 constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
@@ -50,16 +50,16 @@ constexpr int rotaryB = 4;
 constexpr int pwmFreq = 500;
 
 // driving related constants
-constexpr int thresholdL = 1400;
-constexpr int thresholdR = 2200;
-constexpr int defaultSpeed = 1800;
-constexpr int maxSpeed = 3000; // set a max pwm output
-constexpr int minSpeed = 500;    // set a min pwm output
+constexpr int thresholdL = 2000;
+constexpr int thresholdR = 2000;
+constexpr int defaultSpeed = 3600;
+constexpr int maxSpeed = 4095; // set a max pwm output
+constexpr int minSpeed = 800;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
-constexpr int defaultKProp = 0; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 0;
+constexpr int defaultKProp = 1000; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 900;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
@@ -77,7 +77,7 @@ constexpr int servoFreq = 50;
 constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
 constexpr double MG996RMultiplier = 1.316;
-constexpr int carriageForwardPos=120;
+constexpr int carriageForwardPos=90;
 constexpr int carriageMaxLeftPos=0;
 constexpr int carriageMaxRightPos=(int)(180.0*MG996RMultiplier);
 
@@ -86,11 +86,11 @@ constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
 constexpr int clawExtSpeed=2000;
-constexpr int carriageSpeed = 2000;
+constexpr int carriageSpeed = 4095;
 
 // SG90 (claw closing)
-constexpr int clawOpenPos = 0;
-constexpr int clawClosedPos = 90;
+constexpr int clawOpenPos = 180;
+constexpr int clawClosedPos = 0;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;

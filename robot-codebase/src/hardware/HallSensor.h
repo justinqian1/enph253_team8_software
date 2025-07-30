@@ -7,8 +7,8 @@
 class HallSensor {
     public:
 /* Set pin mode and ADC resolution */
-HallSensor(int pin);
-// HallSensor(adc_channel_t adcCh);
+//HallSensor(int pin);
+HallSensor(adc1_channel_t adcCh);
 
 /* Read voltage from the analog pin (scaled from raw ADC) */
 double readVoltage();
@@ -20,7 +20,6 @@ bool magnetDetected(double voltage);
 //String HallSensor::senseAndLog();
 
     private:
-    int hallPin;
     adc1_channel_t _adcChannel;
 };
 #endif //HALLSENSOR_H
