@@ -7,6 +7,7 @@
 #include "driver/pcnt.h"
 #include "constants.h"
 #include "hardware/CustomServo.h"
+#include "hardware/Motor.h"
 #include "components/RobotWheels.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
@@ -89,11 +90,11 @@ CustomServo SG90(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, se
 CustomServo MG996R(MG996RPin,carriageServoPwmChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
 
 //  motor declarations
-Motor leftMotor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
-Motor rightMotor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
+//Motor* leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
+//Motor* rightMotor  = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
 IRSensor leftIRSensor(ADC1_CHANNEL_6);
 IRSensor rightIRSensor(ADC1_CHANNEL_7);
-RobotWheels robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
+//RobotWheels robot(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
 Motor carriageMotor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
 Motor clawExtMotor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
@@ -463,7 +464,7 @@ void drive_task(void *parameters)
     for (;;)
     {
 
-        robot.drivePID(speed);
+        //robot.drivePID(speed);
         Serial2Pi.printf("driving");
 
         // if (millis() - startTime > 90000)
@@ -538,7 +539,7 @@ void detect_task(void *parameters)
 
                 if (clawCentered && closeEnough && anglePastThreshold) {
                     // arm is at nearly 90 degree angle -> initiate pick up
-                    robot.stop();
+                    //robot.stop();
                     vTaskSuspendAll();
                     pickUpPet();      
                     xTaskResumeAll();   
@@ -649,7 +650,9 @@ void idle_task(void *parameters)
 
 void test_drive(void *parameters) {
     for (;;) {
-       robot.drivePID(1095,350,350);
+       //leftMotor.driveMotor(4096,0);
+       //rightMotor.driveMotor(0,0);
+
         vTaskDelay(pdMS_TO_TICKS(4));
     }
 }
@@ -756,6 +759,14 @@ void setup()
         //     &drive_handle // task handle
         // );
         Serial.begin(9600);
+        ledcSetup(0,pwmFreq, 12);
+        ledcSetup(1,pwmFreq, 12);
+        ledcSetup(2,pwmFreq,12);
+        ledcSetup(3,pwmFreq,12);
+        ledcAttachPin(8,0);
+        ledcAttachPin(7,1);
+        ledcAttachPin(22,2);
+        ledcAttachPin(19,3);
         // leftMotor = new Motor(0);
         // rightMotor = new Motor(1);
         // leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
@@ -820,13 +831,13 @@ void setup()
 
     */
         // DRIVING
-        xTaskCreate(
-            test_drive,
-            "Drive",
-            4096,
-            nullptr,
-            1,
-            nullptr);
+        // xTaskCreate(
+        //     test_drive,
+        //     "Drive",
+        //     4096,
+        //     nullptr,
+        //     1,
+        //     nullptr);
         // configIRSensors();
         // attachDriveMotorPins(true);
     }
@@ -840,7 +851,7 @@ void loop()
 
         // if (!rotationTested) {
         //     testRotation();
-        //     rotationTested=true;
+        //     rotationTested=true; 
         // }
         // Serial.print("A: ");
         // Serial.print(digitalRead(rotaryA));
@@ -856,6 +867,10 @@ void loop()
         //driving code
         // drive(speed, true);
         // delay(2);
+        ////leftMotor->driveReverse(4095);
+        ledcWrite(rightPwmChannelFwd,100    );
+        ledcWrite(leftPwmChannelFwd,3000);
+        delay(1000);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler

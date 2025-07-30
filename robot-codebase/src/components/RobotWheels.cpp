@@ -49,8 +49,8 @@ void RobotWheels::drivePID(int speed, int kp,
     ctrl = proportional + derivative;
     _mDist++;
 
-    leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), HIGH);
-    rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), HIGH);
+    leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), 1);
+    rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), 1);
     leftReading = leftIRSensor.read();
     rightReading = rightIRSensor.read();
 #ifdef ROBOT_DEBUG

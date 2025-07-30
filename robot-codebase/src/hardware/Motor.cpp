@@ -16,6 +16,9 @@ Motor::Motor(int pwmChFwd, int pwmFwdPin, int pwmChBkwd, int pwmBkwdPin) : forwa
     ledcSetup(backwardPWMChannel, pwmFreq, 12);
     ledcAttachPin(this->forwardPWMPin, forwardPWMChannel);
     ledcAttachPin(this->backwardPWMPin, backwardPWMChannel);
+    #ifdef MOTOR_DEBUG
+    Serial.println("Motor created!");
+    #endif 
 }
 
 void Motor::driveMotor(int speed, int direction)
@@ -26,20 +29,26 @@ void Motor::driveMotor(int speed, int direction)
                 ledcWrite(this->forwardPWMChannel, speed);
             } else {
                 ledcWrite(this->backwardPWMChannel, 0);
-                vTaskDelay(deadTime / portTICK_PERIOD_MS);
+                //vTaskDelay(deadTime / portTICK_PERIOD_MS);
                 ledcWrite(this->forwardPWMChannel,  speed);
                 this->currentDirection = direction;
             }
+                #ifdef MOTOR_DEBUG
+                Serial.println("Driving forward!!");
+                #endif
             break;
         case BACKWARD:
-            if (this -> currentDirection == BACKWARD) {
+            if (this->currentDirection == BACKWARD) {
                 ledcWrite(this->backwardPWMChannel, speed);
             } else {
                 ledcWrite(this->forwardPWMChannel, 0);
-                vTaskDelay(deadTime / portTICK_PERIOD_MS);
+                //vTaskDelay(deadTime / portTICK_PERIOD_MS);
                 ledcWrite(this->backwardPWMChannel,  speed);
                 this->currentDirection = direction;
             }
+                #ifdef MOTOR_DEBUG
+                Serial.println("Driving backward!!");
+                #endif
             break;
         default:
             // do nothing
