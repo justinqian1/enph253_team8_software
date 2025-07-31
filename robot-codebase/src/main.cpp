@@ -777,6 +777,7 @@ void setup()
         //     &drive_handle // task handle
         // );
         Serial.begin(9600);
+        delay(2000);
         rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
         leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
         carriageMotor = new Motor(carriageHeightPwmChannelUp, carriageUpPin, carriageHeightPwmChannelDown, carriageDownPin);
@@ -786,6 +787,9 @@ void setup()
         robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
         SG90 = new CustomServo(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
         MG996R = new CustomServo(MG996RPin,carriageServoPwmChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
+        Serial.println("MG996R DEBUG");
+        Serial.print("Pin: ");
+        Serial.println(MG996R->getPin());
         // ledcSetup(0,pwmFreq, 12);
         // ledcSetup(1,pwmFreq, 12);
         // ledcSetup(2,pwmFreq,12);
@@ -847,9 +851,19 @@ void setup()
             test_drive,
             "Drive",
             4096,
-            &robot,
+            robot,
             1,
-            nullptr);
+            nullptr
+        );
+        
+        xTaskCreate(
+            test_servo,
+            "Servoing",
+            4096,
+            MG996R,
+            1,
+            nullptr
+        );
         // configIRSensors();
         // attachDriveMotorPins(true);
     }

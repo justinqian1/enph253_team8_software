@@ -12,6 +12,10 @@
 
 #pragma once
 
+// testing tasks
 void test_drive(void* parameters);
 
+void test_servo(void* parameters);
+
+// primary run tasks
 void detect_task(void* parameters);

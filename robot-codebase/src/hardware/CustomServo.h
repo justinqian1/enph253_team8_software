@@ -102,7 +102,7 @@ protected:
     static constexpr int maxDuty = (1 << 16) - 1;
     unsigned long minPulse;
     unsigned long maxPulse;
-    double rotationMultiplier;
+    const double rotationMultiplier;
     /**
      * Private function that calculate the length of a pulse required to get to a certain position, in microseconds
      * @param pos the position to calculate the pulse for

@@ -26,6 +26,21 @@ void test_drive(void *parameters) {
 
 }
 
+void test_servo(void *parameters) {
+    CustomServo* s = static_cast<CustomServo*>(parameters);
+
+    for (;;) {
+        s -> rotateTo(90);
+        Serial.println("ROTATING!");
+        Serial.println(s->getPosition());
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        s -> rotateTo(0);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        s -> rotateBy(180);
+        Serial.println(s->getPosition());
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
 void detect_task(void *parameters)
 {
     // detection code for determining pet location

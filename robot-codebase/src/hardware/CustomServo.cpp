@@ -56,6 +56,10 @@ void CustomServo::rotateTo(int position)
     //Serial2Pi.println(posAsLedcValue);
     int pulse_us = pulseLength(posAsLedcValue);
     uint32_t duty = dutyCycle(pulse_us) * maxDuty;
+    Serial.print("Servo Pin: ");
+    Serial.println(this->servoPin);
+    Serial.print("Duty: ");
+    Serial.println(duty);
     ledcWrite(this->pwmChannel, duty);
     this->servoPosition = position;
 }
@@ -96,15 +100,23 @@ void CustomServo::rotateBy(int degrees) {
 
 int CustomServo::pulseLength(int pos)
 {
+    Serial.print("Map: ");
+    Serial.println(map(pos,0,180,minPulse,maxPulse));
     return map(pos, 0, 180, this->minPulse, this->maxPulse);
 }
 
 double CustomServo::dutyCycle(int length)
 {
+    Serial.print("Duty Function: ");
+    Serial.println(1e6 / static_cast<double>(periodHertz));
     double period = 1e6 / static_cast<double>(this->periodHertz);
     return (length) / (double)period;
 }
 
 int CustomServo::posToLedcWrite(int pos) {
+    Serial.print("Multiplier: ");
+    Serial.println((int)round((double)pos / rotationMultiplier));
+    Serial.print("Mult Value : ");
+    Serial.println(rotationMultiplier);
     return (int)round((double)pos / this->rotationMultiplier);
 }

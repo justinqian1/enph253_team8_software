@@ -18,7 +18,7 @@ extern RobotWheels* robot;//(leftMotor, rightMotor, leftIRSensor, rightIRSensor)
 extern CustomServo* SG90;
 extern CustomServo* MG996R;
 
-
+// task handles
 
 extern TaskHandle_t drive_handle;
 extern TaskHandle_t grab_handle;
@@ -30,19 +30,27 @@ extern TaskHandle_t full_turn_handle;
 extern TaskHandle_t detect_handle;
 extern TaskHandle_t idle_handle;
 
+// claw booleans
+
 extern volatile bool carriageHigh; 
 extern volatile bool carriageLow;
 extern volatile bool clawFullyExtended;
 extern volatile bool clawFullyRetracted;
+
+// pet location vars
 
 extern double petX;
 extern double petY;
 extern double petW;
 extern double petH;
 
+// tracking  vars 
+
 extern bool closeEnough;
 extern bool clawCentered;
 extern bool anglePastThreshold;
+
+// misc vars
 
 extern volatile int speed;    // average speed
 extern int petsPickedUp;
