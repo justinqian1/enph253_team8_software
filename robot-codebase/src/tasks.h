@@ -13,3 +13,5 @@
 #pragma once
 
 void test_drive(void* parameters);
+
+void detect_task(void* parameters);

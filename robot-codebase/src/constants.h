@@ -5,6 +5,9 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+#define UP true
+#define DOWN false
+
 // PWM Channels
 
 constexpr int leftPwmChannelFwd = 0;
@@ -110,5 +113,14 @@ constexpr int switchPollFrequency = 20;
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;
 constexpr double magnetThresholdVoltage = 1.5;
+
+// Serial2Pi
+
+extern HardwareSerial Serial2Pi;
+
+
+constexpr bool heightsForPickup[6] = {false, false, true, true, false, false}; //false = low, true = high
+constexpr bool pickupSide[6] = {false, true, true, true, true, false}; // false = left, true = right
+constexpr double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in inches from tape
 
 #endif //PINASSIGNMENTS_H
