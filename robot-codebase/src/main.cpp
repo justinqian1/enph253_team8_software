@@ -9,6 +9,7 @@
 #include "hardware/CustomServo.h"
 #include "hardware/Motor.h"
 #include "components/RobotWheels.h"
+#include "tasks.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
 bool run = false;
@@ -645,15 +646,16 @@ void idle_task(void *parameters)
     vTaskDelete(NULL);
 }
 
-void test_drive(void *parameters) {
-    for (;;) {
-        robot -> driveLeftMotor(3000,0);
-        //Serial.println("Driving!");
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        robot -> driveStraight(4095,1);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-    }
-}
+// void test_drive(void *parameters) {
+//     RobotWheels* r = static_cast<RobotWheels*>(parameters);
+//     for (;;) {
+//         r -> driveLeftMotor(3000,0);
+//         //Serial.println("Driving!");
+//         vTaskDelay(pdMS_TO_TICKS(1000));
+//         r -> driveStraight(4095,1);
+//         vTaskDelay(pdMS_TO_TICKS(1000));
+//     }
+// }
 
 void full_turn_test(void *parameters) {
     for(;;) {
@@ -751,16 +753,16 @@ void setup()
     }
 
     if (!run) {
-        Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
-        Serial2Pi.write("Hello from the ESP32!");
-        xTaskCreate(
-            detect_task,   // function to be run
-            "Detecting",   // description of task
-            4096,          // bytes allocated to this stack
-            NULL,          // parameters, dependent on function
-            2,             // priority
-            &detect_handle // task handle
-        );
+        // Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
+        // Serial2Pi.write("Hello from the ESP32!");
+        // xTaskCreate(
+        //     detect_task,   // function to be run
+        //     "Detecting",   // description of task
+        //     4096,          // bytes allocated to this stack
+        //     NULL,          // parameters, dependent on function
+        //     2,             // priority
+        //     &detect_handle // task handle
+        // );
         // xTaskCreate(
         //     drive_task,   // function to be run
         //     "Driving",    // description of task
@@ -805,7 +807,7 @@ void setup()
         // attachInterrupt(rotaryA, encoderRead, CHANGE);
 
         // limit switches
-        setupLimitSwitches();
+        //setupLimitSwitches();
 
         // xTaskCreate(
         //     raise_carriage_task,  // Task function
@@ -832,13 +834,13 @@ void setup()
         //     &poll_switch_handle   // Handle
         // );
         // DRIVING
-        // xTaskCreate(
-        //     test_drive,
-        //     "Drive",
-        //     4096,
-        //     NULL,
-        //     1,
-        //     nullptr);
+        xTaskCreate(
+            test_drive,
+            "Drive",
+            4096,
+            &robot,
+            1,
+            nullptr);
         // configIRSensors();
         // attachDriveMotorPins(true);
     }
