@@ -8,7 +8,6 @@
 #include "constants.h"
 #include "hardware/CustomServo.h"
 #include "hardware/Motor.h"
-#include "hardware/RotaryEncoder.h"
 #include "components/RobotWheels.h"
 
 // TRUE IF RUNNING, FALSE IF TESTING
@@ -96,7 +95,6 @@ Motor* leftMotor;//(leftPwmChannelFwd, 8, leftPwmChannelBwd, 7);
 IRSensor* leftIRSensor;//(ADC1_CHANNEL_6);
 IRSensor* rightIRSensor;//(ADC1_CHANNEL_7);
 RobotWheels* robot;//(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
-RotaryEncoder* encoder;
 
 Motor carriageMotor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
 Motor clawExtMotor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
@@ -127,7 +125,7 @@ double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in i
  * resets pet detection related variables after pickup
  */
 void resetVars() {
-   // MG996R.rotateTo(carriageForwardPos);
+    MG996R.rotateTo(carriageForwardPos);
     closeEnough = false;
     clawCentered = false;
     anglePastThreshold = false;
@@ -162,27 +160,6 @@ void moveCarriage(bool up) {
     uint32_t switchToPoll;
     up ? switchToPoll = CARRIAGE_HIGH_SWITCH : switchToPoll = CARRIAGE_LOW_SWITCH;
     pollSwitch(switchToPoll);
-        
-        // SwitchHit hit;
-        // portENTER_CRITICAL(&mux);
-        // hit = carriageSwitchEvent;
-        // carriageSwitchEvent = NONE;
-        // portEXIT_CRITICAL(&mux);
-
-        // if (hit != NONE) {
-        //     Serial.println(hit);
-        //     // Handle switch event
-        //     if (hit == HIGH_SWITCH) {
-        //         Serial.println("Carriage hit high switch");
-        //         carriageHigh = true;
-        //     } else {
-        //         Serial.println("Carriage hit low switch");
-        //         carriageHigh = false;
-        //     }
-        //     Serial.print("Carriage high? ");
-        //     Serial.println(carriageHigh);
-        //     break;
-        // }
 }
 
 void extendClaw (bool outwards) {
@@ -239,11 +216,8 @@ void dropPetInBasket() {
         //xTaskNotify(raise_carriage_handle, true, eSetValueWithOverwrite); // moves carriage up if it's low; DOESN'T WORK RN
     }
     
-    //rotate to max angle
-    Serial2Pi.println("Rotating to right side to drop pet");
-    MG996R.rotateTo(carriageMaxRightPos);
-
     extendClaw(false); // retract claw
+    MG996R.rotateTo(carriageMaxRightPos); //rotate to max angle
     closeClaw(false); // open claw
     delay(1500); // give time to drop pet
     extendClaw(true); // re extend claw
@@ -692,8 +666,6 @@ void full_turn_test(void *parameters) {
         vTaskDelay(4000);
     }
 }
-
-
 // add more functions here
 
 void setup()
@@ -779,16 +751,16 @@ void setup()
     }
 
     if (!run) {
-        // Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
-        // Serial2Pi.write("Hello from the ESP32!");
-        // xTaskCreate(
-        //     detect_task,   // function to be run
-        //     "Detecting",   // description of task
-        //     4096,          // bytes allocated to this stack
-        //     NULL,          // parameters, dependent on function
-        //     1,             // priority
-        //     &detect_handle // task handle
-        // );
+        Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
+        Serial2Pi.write("Hello from the ESP32!");
+        xTaskCreate(
+            detect_task,   // function to be run
+            "Detecting",   // description of task
+            4096,          // bytes allocated to this stack
+            NULL,          // parameters, dependent on function
+            2,             // priority
+            &detect_handle // task handle
+        );
         // xTaskCreate(
         //     drive_task,   // function to be run
         //     "Driving",    // description of task
@@ -803,7 +775,6 @@ void setup()
         leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
         rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
         robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
-        encoder = new RotaryEncoder(4,2);
         // ledcSetup(0,pwmFreq, 12);
         // ledcSetup(1,pwmFreq, 12);
         // ledcSetup(2,pwmFreq,12);
@@ -834,7 +805,7 @@ void setup()
         // attachInterrupt(rotaryA, encoderRead, CHANGE);
 
         // limit switches
-       // setupLimitSwitches();
+        setupLimitSwitches();
 
         // xTaskCreate(
         //     raise_carriage_task,  // Task function
@@ -920,8 +891,6 @@ void loop()
         // ledcWrite(leftPwmChannelFwd,3000);
         // delay(1000);
         //robot.driveStraight(3000,1);
-        Serial.println(encoder->read());
-        delay(10);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler

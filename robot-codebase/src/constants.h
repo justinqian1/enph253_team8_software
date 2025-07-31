@@ -65,8 +65,8 @@ constexpr int dir2 = 1;
 
 //thresholds for pick up
 constexpr int angleThreshold=75;
-constexpr int clawCenterThreshold=20; //px from center
-constexpr double areaThresholdForPickup=5000.0;
+constexpr int clawCenterThreshold=30; //px from center
+constexpr double areaThresholdForPickup=3500.0;
 
 // misc cv params
 constexpr int imgSize=320;
