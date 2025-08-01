@@ -5,7 +5,7 @@
 #include "RobotWheels.h"
 #include "hardware/Motor.h"
 
-#define ROBOT_DEBUG
+//#define ROBOT_DEBUG
 
 RobotWheels::RobotWheels(Motor &lMotor, Motor &rMotor, IRSensor &lIRSensor,
                          IRSensor &rIRSensor) : leftMotor(lMotor), rightMotor(rMotor), leftIRSensor(lIRSensor),
@@ -51,9 +51,9 @@ void RobotWheels::drivePID(int speed, int kp,
 
     leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), 1);
     rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), 1);
+#ifdef ROBOT_DEBUG
     leftReading = leftIRSensor.read();
     rightReading = rightIRSensor.read();
-#ifdef ROBOT_DEBUG
     Serial.print("Left reading");
     Serial.println(leftReading);
     Serial.print("Right reading:");

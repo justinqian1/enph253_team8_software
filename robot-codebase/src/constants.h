@@ -59,7 +59,7 @@ constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
 constexpr int defaultKProp = 1000; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 900;
+constexpr int defaultKDeriv = 1200;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
@@ -70,16 +70,17 @@ constexpr double areaThresholdForPickup=3500.0;
 
 // misc cv params
 constexpr int imgSize=320;
+constexpr int imgCenter=160;
 constexpr double horizontal_fov=62.2;
 
-// carriage/servo setup
+// turret/servo setup
 constexpr int servoFreq = 50;
 constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
 constexpr double MG996RMultiplier = 1.316;
-constexpr int carriageForwardPos=90;
-constexpr int carriageMaxLeftPos=0;
-constexpr int carriageMaxRightPos=(int)(180.0*MG996RMultiplier);
+constexpr int turretForwardPos=90;
+constexpr int turretMaxLeftPos=0;
+constexpr int turretMaxRightPos=(int)(180.0*MG996RMultiplier);
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;

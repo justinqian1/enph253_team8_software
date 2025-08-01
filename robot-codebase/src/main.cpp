@@ -59,9 +59,7 @@ int lastOnTape = 0; // -1: left; 1: right
 
 // pet location vars
 double petX = 0;
-double petY = 0;
-double petW = 0;
-double petH = 0;
+double petArea = 0;
 
 //booleans for pick up
 bool closeEnough = false;
@@ -85,10 +83,10 @@ volatile unsigned long lastTime = 0;
 
 // servos
 // for closing the claw
-CustomServo SG90(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
+CustomServo* clawCloseServo;
 
 // for rotating turret
-CustomServo MG996R(MG996RPin,carriageServoPwmChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
+CustomServo* turretServo;
 
 //  motor declarations
 Motor* rightMotor;//(rightPwmChannelFwd, 20, rightPwmChannelBwd, 21);
@@ -97,8 +95,8 @@ IRSensor* leftIRSensor;//(ADC1_CHANNEL_6);
 IRSensor* rightIRSensor;//(ADC1_CHANNEL_7);
 RobotWheels* robot;//(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 
-Motor carriageMotor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
-Motor clawExtMotor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
+Motor* carriageMotor;
+Motor* clawExtMotor;
 
 // function declarations
 void resetVars();
@@ -126,7 +124,9 @@ double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in i
  * resets pet detection related variables after pickup
  */
 void resetVars() {
-    MG996R.rotateTo(carriageForwardPos);
+    if (carriageHigh) {
+        turretServo->rotateTo(turretForwardPos);
+    }
     closeEnough = false;
     clawCentered = false;
     anglePastThreshold = false;
@@ -156,7 +156,14 @@ void setupLimitSwitches() {
  * @param up, true if moving up and false if moving down
  */
 void moveCarriage(bool up) {
-    carriageMotor.driveMotor(carriageSpeed,up);
+    // if already moved to target position
+    if (up && carriageHigh ||
+       !up && carriageLow) {
+        return;
+    }
+
+    // move carriage
+    carriageMotor->driveMotor(carriageSpeed,up);
     Serial2Pi.println(up ? "Moving carriage upwards" : "Moving carriage downwards");
     uint32_t switchToPoll;
     up ? switchToPoll = CARRIAGE_HIGH_SWITCH : switchToPoll = CARRIAGE_LOW_SWITCH;
@@ -164,16 +171,23 @@ void moveCarriage(bool up) {
 }
 
 void extendClaw (bool outwards) {
+    // if already moved to target position
+    if (outwards && clawFullyExtended ||
+       !outwards && clawFullyRetracted) {
+        return;
+    }
+
+    // move claw
     uint32_t switchToPoll;
     if (outwards) {
         Serial2Pi.println("Claw extending");
         clawFullyRetracted = false;
-        clawExtMotor.driveForward(clawExtSpeed);
+        clawExtMotor->driveForward(clawExtSpeed);
         switchToPoll = CLAW_EXT_SWITCH;
     } else {
         Serial2Pi.println("Claw retracting");
         clawFullyExtended = false;
-        clawExtMotor.driveReverse(clawExtSpeed);
+        clawExtMotor->driveReverse(clawExtSpeed);
         switchToPoll = CLAW_RET_SWITCH;
     }
     pollSwitch(switchToPoll);
@@ -181,19 +195,18 @@ void extendClaw (bool outwards) {
 
 void closeClaw(bool close) {
     if (close) {
-        SG90.rotateTo(clawClosedPos);
+        clawCloseServo->rotateTo(clawClosedPos);
         Serial2Pi.println("claw closing");
     } else {
-        SG90.rotateTo(clawOpenPos);
+        clawCloseServo->rotateTo(clawOpenPos);
         Serial2Pi.println("claw opening");
     }
 }
 
 /**
- * picks up pet
+ * picks up pet 
  */
-void pickUpPet() {
-    vTaskSuspend(detect_handle);
+void pickUpPet() {   
     bool targetHeight = heightsForPickup[petsPickedUp];
     if (targetHeight && !carriageHigh) {
         moveCarriage(true);
@@ -204,11 +217,10 @@ void pickUpPet() {
     extendClaw(true);
     // receive input from hall effect
     closeClaw(true);
-    delay(1000);
+    delay(2000);
     petsPickedUp++;
     Serial2Pi.printf("Pet picked up!\n");
-    //dropPetInBasket();
-    return; // START DROP SEQUENCE
+    dropPetInBasket(); // START DROP SEQUENCE
 }
 
 void dropPetInBasket() {
@@ -218,41 +230,38 @@ void dropPetInBasket() {
     }
     
     extendClaw(false); // retract claw
-    MG996R.rotateTo(carriageMaxRightPos); //rotate to max angle
+    turretServo->rotateTo(turretMaxRightPos); //rotate to max angle
     closeClaw(false); // open claw
-    delay(1500); // give time to drop pet
-    extendClaw(true); // re extend claw
+    delay(2000); // give time to drop pet
     prepareForNextPickup();
 }
 
 void prepareForNextPickup() {
     Serial2Pi.println("Preparing for next pickup");
-    moveCarriage(true); // move carriage up
-    pickupSide[petsPickedUp] ? MG996R.rotateTo(carriageForwardPos-45) : MG996R.rotateTo(carriageForwardPos+45);
-
-    extendClaw(false);
-    vTaskResume(detect_handle);
-    //vTaskResume(drive_handle);
+    pickupSide[petsPickedUp] ? turretServo->rotateTo(turretForwardPos-45) : turretServo->rotateTo(turretForwardPos+45);
+    // now claw should be open, carriage should be high and rotated properly
+    speed=defaultSpeed;
+    // vTaskResume(drive_handle);
 }
 
 void testRotation() {    
-    MG996R.rotateTo(90);
+    clawCloseServo->rotateTo(90);
     Serial2Pi.println("position set to 90");
-    delay(1500);
+    delay(2000);
 
-    MG996R.rotateBy(90);
+    clawCloseServo->rotateTo(0);
     Serial2Pi.println("position should be 180");
-    delay(1500);
+    delay(2000);
 
-    MG996R.rotateBy(-90);
+    clawCloseServo->rotateTo(90);
     Serial2Pi.println("position should be 90");
-    delay(1500);
+    delay(2000);
 
-    MG996R.rotateBy(-90);
+    clawCloseServo->rotateTo(180);
     Serial2Pi.println("position should be 0");
-    delay(1500);
+    delay(2000);
 
-    MG996R.rotateBy(90);
+    clawCloseServo->rotateTo(90);
     Serial2Pi.println("position should be 90");
     Serial2Pi.println("test ended");
 }
@@ -270,7 +279,7 @@ bool checkSwitchHit(uint32_t switch_id) {
             if (result) {
                 carriageHigh=true;
                 carriageLow=false;
-                carriageMotor.stopMotor();
+                carriageMotor->stopMotor();
                 //xTaskNotifyGive(raise_carriage_handle);
                 Serial.println("Carriage high switch hit");
             }
@@ -280,7 +289,7 @@ bool checkSwitchHit(uint32_t switch_id) {
             if (result) {
                 carriageHigh=false;
                 carriageLow=true;
-                carriageMotor.stopMotor();
+                carriageMotor->stopMotor();
                 //xTaskNotifyGive(raise_carriage_handle);
                 Serial.println("Carriage low switch hit");
             }
@@ -290,7 +299,7 @@ bool checkSwitchHit(uint32_t switch_id) {
             if (result) {
                 clawFullyExtended=true;
                 clawFullyRetracted=false;
-                clawExtMotor.stopMotor();
+                clawExtMotor->stopMotor();
                 Serial.println("Claw full extension switch hit");
             }
             break;
@@ -299,7 +308,7 @@ bool checkSwitchHit(uint32_t switch_id) {
             if (result) {
                 clawFullyExtended=false;
                 clawFullyRetracted=true;
-                clawExtMotor.stopMotor();
+                clawExtMotor->stopMotor();
                 Serial.println("Claw full retraction switch hit");
             }
             break;
@@ -334,63 +343,59 @@ bool pollSwitch(uint32_t switch_id) {
 
 /**
  * Runs the homing sequence for the robot
- * NEEDS FULL REWRITE - COMMENTED OUT FOR NOW
  */
 void home()
 {
     /**
      * Code for homing sequence to run on startup, including:
      * Homing DC motors using limit switches (2 motors)
-     * Setting all servo motor positions to 0
+     * Setting all servo motor positions to home positions
      */
+    
+    //extends claw, then moves carriage down then back up, then retracts claw
+    extendClaw(true);
+    moveCarriage(false);
+    moveCarriage(true);
+    extendClaw(false); // claw at full retraction at start
 
-    // uint32_t switchHit;
-    /*
-    SG90Pos = 0;
-    DSPos = 0;
-    MG996RPos = 0;
-
-    SG90.write(SG90Pos);
-    DS.write(DSPos);
-    MG996R.write(MG996RPos);
+    clawCloseServo->rotateTo(clawOpenPos);
+    turretServo->rotateTo(turretForwardPos);
+    /* 
+    OLD HOMING CODE
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 0);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 3)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    }
+    else if (switchHit == 4)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    }
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 1);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 3)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    }
+    else if (switchHit == 4)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    }
+    stopMotor(clawExtPwmChannelExt,clawExtPwmChannelRet);
+    driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 0);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 1)
+    {
+        stopMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown);
+    }
+    else if (switchHit == 2)
+    {
+        driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 1);
+        xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+        stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
+    }
     */
-
-    // find limits of the claw
-    // driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 0);
-    // xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-    // if (switchHit == 3)
-    // {
-    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
-    // }
-    // else if (switchHit == 4)
-    // {
-    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
-    // }
-
-    // driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 1);
-    // xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-    // if (switchHit == 3)
-    // {
-    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
-    // }
-    // else if (switchHit == 4)
-    // {
-    //     pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
-    // }
-    // stopMotor(clawExtPwmChannelExt,clawExtPwmChannelRet);
-
-    // driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 0);
-    // xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-    // if (switchHit == 1)
-    // {
-    //     stopMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown);
-    // }
-    // else if (switchHit == 2)
-    // {
-    //     driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 1);
-    //     xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
-    //     stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
-    // }
 }
 
 // Another ISR implementation for the start button to go (can also be a switch)
@@ -399,38 +404,6 @@ void IRAM_ATTR startButtonPressedISR()
     BaseType_t hpw = pdFALSE;
     vTaskNotifyGiveFromISR(idle_handle, &hpw);
     portYIELD_FROM_ISR(&hpw);
-}
-
-void IRAM_ATTR carriageLowPressedISR()
-{
-    // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    // xTaskNotifyFromISR(lower_switch_handle, LOW_SWITCH, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
-    // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    // BaseType_t hpw = pdFALSE;
-    // xTaskNotifyFromISR(home_handle, 0x01, eSetBits, &hpw);
-    // portYIELD_FROM_ISR(&hpw);
-}
-
-void IRAM_ATTR carriageHighPressedISR()
-{
-    // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    // xTaskNotifyFromISR(upper_switch_handle, HIGH_SWITCH, eSetValueWithOverwrite, &xHigherPriorityTaskWoken);
-    // portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    // BaseType_t hpw = pdFALSE;
-    // xTaskNotifyFromISR(home_handle, 0x02, eSetBits, &hpw);
-    // portYIELD_FROM_ISR(&hpw);
-}
-
-void IRAM_ATTR clawFullExtensionPressedISR()
-{
-    clawFullyExtended = true;
-    // BaseType_t hpw = pdFALSE;
-    // xTaskNotifyFromISR(home_handle, 0x03, eSetBits, &hpw);
-    // portYIELD_FROM_ISR(&hpw);
-}
-
-void IRAM_ATTR clawFullRetractionPressedISR() {
-    clawFullyRetracted = true;
 }
 
 void IRAM_ATTR encoderRead() {
@@ -462,16 +435,14 @@ void drive_task(void *parameters)
     for (;;)
     {
 
-       // drive(speed);
-        //robot.drivePID(speed);
-        Serial2Pi.printf("driving");
+        robot->drivePID(speed);
 
         // if (millis() - startTime > 90000)
         // {
         //     xTaskNotifyGive(&full_turn_handle);
         // }
         // the vTaskDelay function takes in ticks as a time measurement, so / portTick_PERIOD_MS converts to ms
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(pdMS_TO_TICKS(2));
     }
 }
 
@@ -507,24 +478,24 @@ void detect_task(void *parameters)
                 Serial2Pi.printf("System message 'RESET' received\n");
             } else if (line.length()>1) {
                 // pet in visual range AND large enough (done on pi)
-                sscanf(line.c_str(), "%lf,%lf,%lf,%lf", &petX, &petY, &petW, &petH);
-                Serial2Pi.printf("ESP received: x=%.2lf y=%.2lf w=%.2lf h=%.2lf\n", petX, petY, petW, petH);
+                sscanf(line.c_str(), "%lf,%lf", &petX, &petArea);
+                Serial2Pi.printf("ESP received: x=%.2lf area=%.2lf\n", petX, petArea);
 
-                double petArea = petW*petH;
-                int currentAngle=MG996R.getPosition();
+                int currentAngle=turretServo->getPosition();
                 Serial2Pi.printf("servo angle: %d\n",currentAngle);
 
                 //check if pet big enough for pickup
                 closeEnough = petArea > areaThresholdForPickup;           
 
                 // check if angle is correct (off forward direction by at least 75 deg)
-                anglePastThreshold = (currentAngle < carriageForwardPos - angleThreshold ||
-                                  currentAngle > carriageForwardPos + angleThreshold);
+                anglePastThreshold = (currentAngle < turretForwardPos - angleThreshold ||
+                                  currentAngle > turretForwardPos + angleThreshold);
 
                 //rotate turret
                 double rotate_const=1.0;
-                if (abs((int)petX-imgSize/2) > clawCenterThreshold) { //tolerance of 20; center of pet in pixels 140-180 is good enough
-                    MG996R.rotateBy((int)(angleToCenter(petX)*rotate_const));
+                if (abs((int)petX-imgCenter) > clawCenterThreshold) { //tolerance of 30; center of pet in pixels 130-190 is good enough
+                    int rotationAmt = (int)(angleToCenter(petX)*rotate_const);
+                    turretServo->rotateBy(rotationAmt);
                     clawCentered=false;
                 } else {
                     clawCentered = true;
@@ -536,20 +507,23 @@ void detect_task(void *parameters)
                 Serial2Pi.printf("Angle past threshold: %d\n",anglePastThreshold);
 
                 if (clawCentered && closeEnough && anglePastThreshold) {
+                //if (closeEnough) {
                     // arm is at nearly 90 degree angle -> initiate pick up
-                    leftMotor->stopMotor();
-                    rightMotor->stopMotor();
-                    //vTaskSuspend(drive_handle);
-                    pickUpPet();      
+                    Serial2Pi.printf("Initiating pickup...\n");
+                    // robot->stop();
+                    // vTaskSuspend(drive_handle);
+                    pickUpPet();
+                    while (Serial2Pi.available()) {
+                        Serial2Pi.read();  // Clears input buffer to avoid retriggering 
+                    }
                 } else {
                     // not close enough - update speed
-                    int tempSpeedCeiling = (int)(-0.25*petArea+2300.0); // arbitrary function for now, decreases speed as pet draws closer
+                    int tempSpeedCeiling = (int)(-1.2*petArea+5000.0); // arbitrary function for now, decreases speed as pet draws closer
                     int currentSpeed = speed;
-                    tempSpeedCeiling=max(tempSpeedCeiling,1000); // make sure speed is positive
+                    tempSpeedCeiling=max(tempSpeedCeiling,minSpeed); // make sure speed is positive
                     speed=min(currentSpeed,tempSpeedCeiling);
                     Serial2Pi.printf("robot speed: %d\n",speed);
                 }
-                //Serial.printf("x=%.2f y=%.2f w=%.2f h=%.2f\n", pet_x, pet_y, pet_w, pet_h);
             }
         }
         vTaskDelay(pdMS_TO_TICKS(10));
@@ -753,8 +727,23 @@ void setup()
     }
 
     if (!run) {
-        // Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
-        // Serial2Pi.write("Hello from the ESP32!");
+        Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
+        Serial2Pi.write("Hello from the ESP32!");
+        
+        rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
+        leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
+        leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
+        rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
+        robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
+        carriageMotor = new Motor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
+        clawExtMotor = new Motor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
+
+        // for closing the claw
+        clawCloseServo = new CustomServo(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, 400, 2700);
+
+        // for rotating turret
+        turretServo = new CustomServo(MG996RPin,carriageServoPwmChannel, turretForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
+
         // xTaskCreate(
         //     detect_task,   // function to be run
         //     "Detecting",   // description of task
@@ -766,41 +755,12 @@ void setup()
         // xTaskCreate(
         //     drive_task,   // function to be run
         //     "Driving",    // description of task
-        //     1000,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
+        //     4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
         //     NULL,         // parameters, dependent on function
         //     1,            // priority
         //     &drive_handle // task handle
         // );
-        Serial.begin(9600);
-        rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
-        leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
-        leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
-        rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
-        robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
-        // ledcSetup(0,pwmFreq, 12);
-        // ledcSetup(1,pwmFreq, 12);
-        // ledcSetup(2,pwmFreq,12);
-        // ledcSetup(3,pwmFreq,12);
-        // ledcAttachPin(8,0);
-        // ledcAttachPin(7,1);
-        // ledcAttachPin(22,2);
-        // ledcAttachPin(19,3);
-        // leftMotor = new Motor(0);
-        // rightMotor = new Motor(1);
-        // leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
-        // rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
-        // leftMotor->attachPins(pwmOut1, dirOut1);
-        // rightMotor->attachPins(pwmOut2, dirOut2);
-        // robot = new DriveMotors(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
-        //
-        //
-        // xTaskCreate(
-        //     test_drive,
-        //     "Testing Drive",
-        //     4000,
-        //     &robot,
-        //     0,
-        //     NULL);
+        // Serial.begin(9600);
 
         // pinMode(rotaryA, INPUT_PULLUP);
         // pinMode(rotaryB, INPUT_PULLUP);
@@ -833,23 +793,13 @@ void setup()
         //     4,                    // Priority
         //     &poll_switch_handle   // Handle
         // );
-        // DRIVING
-        xTaskCreate(
-            test_drive,
-            "Drive",
-            4096,
-            &robot,
-            1,
-            nullptr);
-        // configIRSensors();
-        // attachDriveMotorPins(true);
     }
 
 }
 
 void loop()
 {
-    // MG996R.rotateTo(90);
+    testRotation();
     // pickUpPet();
     // delay(3000);
     if (!run) {
@@ -858,7 +808,7 @@ void loop()
         // Serial.print("Carriage position now ");
         // Serial.println(carriageHigh);
 
-        // delay(1000);
+        // delay(3000);
 
         // Serial.println("Testing claw");
         // extendClaw(clawFullyRetracted);
@@ -873,7 +823,7 @@ void loop()
         //     testRotation();
         //     rotationTested=true; 
         // }
-        // MG996R.rotateTo(90);
+        // turretServo->rotateTo(90);
         // Serial.print("A: ");
         // Serial.print(digitalRead(rotaryA));
         // Serial.print(" B ");
@@ -884,15 +834,6 @@ void loop()
         // Serial.println(rotaryPosition);
         // // robot.driveStraight(2000,1);
         // delay(400);
-
-        //driving code
-        // drive(speed, true);
-        // delay(2);
-        ////leftMotor->driveReverse(4095);
-        // ledcWrite(rightPwmChannelFwd,100    );
-        // ledcWrite(leftPwmChannelFwd,3000);
-        // delay(1000);
-        //robot.driveStraight(3000,1);
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler
