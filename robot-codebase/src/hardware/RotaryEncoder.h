@@ -10,7 +10,7 @@
 
 class RotaryEncoder {
 public:
-    RotaryEncoder(int pinA, int pinB);
+    RotaryEncoder(int _pinA, int pinB);
     int read();
 
     void update();
@@ -18,7 +18,7 @@ public:
     static void IRAM_ATTR handleInterrupt();
 
 private:
-    int pinA;
+    int _pinA;
     int pinB;
     int minVal = -200;
     int maxVal = 200;

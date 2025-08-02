@@ -8,11 +8,11 @@
 
 RotaryEncoder* RotaryEncoder::instance = nullptr;
 constexpr int RotaryEncoder::lookupTable[16];
-RotaryEncoder::RotaryEncoder(int pinA, int pinB) :  pinA(pinA), pinB(pinB) {
+RotaryEncoder::RotaryEncoder(int _pinA, int pinB) :  _pinA(_pinA), pinB(pinB) {
     instance = this;
-    pinMode(pinA, INPUT_PULLUP);
+    pinMode(_pinA, INPUT_PULLUP);
     pinMode(pinB, INPUT_PULLUP);
-    attachInterrupt(pinA, handleInterrupt, CHANGE);
+    attachInterrupt(_pinA, handleInterrupt, CHANGE);
 }
 
 int RotaryEncoder::read() {
@@ -20,7 +20,7 @@ int RotaryEncoder::read() {
 }
 
 void RotaryEncoder::update() {
-    int mostSignificantBit = digitalRead(pinA);
+    int mostSignificantBit = digitalRead(_pinA);
     int leastSignificantBit = digitalRead(pinB);
     int bitEncodedValue = (mostSignificantBit << 1) | leastSignificantBit;
     if (bitEncodedValue != lastEncodedBitValue) {

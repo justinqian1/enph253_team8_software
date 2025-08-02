@@ -95,14 +95,14 @@ public:
     void rotateBy(int degrees);
 
 protected:
-    int servoPin;
-    int servoPosition;
-    int periodHertz;
-    int pwmChannel;
-    static constexpr int maxDuty = (1 << 16) - 1;
-    unsigned long minPulse;
-    unsigned long maxPulse;
-    const double rotationMultiplier;
+    int _servoPin;
+    int _servoPosition;
+    int _periodHertz;
+    int _pwmChannel;
+    static constexpr int _maxDuty = (1 << 16) - 1;
+    unsigned long _minPulse;
+    unsigned long _maxPulse;
+    const double _rotationMultiplier;
     /**
      * Private function that calculate the length of a pulse required to get to a certain position, in microseconds
      * @param pos the position to calculate the pulse for

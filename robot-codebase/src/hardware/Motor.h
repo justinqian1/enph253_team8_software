@@ -58,10 +58,10 @@ class Motor : public motor_interface
     int currentDirection = 0;
 
     private:
-    int forwardPWMPin;
-    int backwardPWMPin;
-    int forwardPWMChannel;
-    int backwardPWMChannel;
+    int _forwardPWMPin;
+    int _backwardPWMPin;
+    int _forwardPWMChannel;
+    int _backwardPWMChannel;
     int deadTime = 2; // ms
 };
 #endif //MOTOR_H

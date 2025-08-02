@@ -38,7 +38,7 @@ public:
 
 
 private:
-    int IRPin = -1;
+    int _IRPin = -1;
     adc1_channel_t _adcChannel;
     static bool _adcInitialized;
 };

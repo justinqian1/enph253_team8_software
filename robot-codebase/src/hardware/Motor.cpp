@@ -11,12 +11,12 @@
 #define BACKWARD 0
 
 int created = 0;
-Motor::Motor(int pwmChFwd, int pwmFwdPin, int pwmChBkwd, int pwmBkwdPin) : forwardPWMChannel(pwmChFwd), forwardPWMPin(pwmFwdPin), backwardPWMChannel(pwmChBkwd), backwardPWMPin(pwmBkwdPin)
+Motor::Motor(int pwmChFwd, int pwmFwdPin, int pwmChBkwd, int pwmBkwdPin) : _forwardPWMChannel(pwmChFwd), _forwardPWMPin(pwmFwdPin), _backwardPWMChannel(pwmChBkwd), _backwardPWMPin(pwmBkwdPin)
 {
-    ledcSetup(forwardPWMChannel, pwmFreq, 12);
-    ledcSetup(backwardPWMChannel, pwmFreq, 12);
-    ledcAttachPin(this->forwardPWMPin, forwardPWMChannel);
-    ledcAttachPin(this->backwardPWMPin, backwardPWMChannel);
+    ledcSetup(_forwardPWMChannel, pwmFreq, 12);
+    ledcSetup(_backwardPWMChannel, pwmFreq, 12);
+    ledcAttachPin(this->_forwardPWMPin, _forwardPWMChannel);
+    ledcAttachPin(this->_backwardPWMPin, _backwardPWMChannel);
     created = 1;
     #ifdef MOTOR_DEBUG
     Serial.println("Motor created!");
@@ -28,11 +28,11 @@ void Motor::driveMotor(int speed, int direction)
     switch (direction) {
         case FORWARD:
             if (this->currentDirection == FORWARD) {
-                ledcWrite(this->forwardPWMChannel, speed);
+                ledcWrite(this->_forwardPWMChannel, speed);
             } else {
-                ledcWrite(this->backwardPWMChannel, 0);
+                ledcWrite(this->_backwardPWMChannel, 0);
                 //vTaskDelay(deadTime / portTICK_PERIOD_MS);
-                ledcWrite(this->forwardPWMChannel,  speed);
+                ledcWrite(this->_forwardPWMChannel,  speed);
                 this->currentDirection = direction;
             }
                 #ifdef MOTOR_DEBUG
@@ -41,11 +41,11 @@ void Motor::driveMotor(int speed, int direction)
             break;
         case BACKWARD:
             if (this->currentDirection == BACKWARD) {
-                ledcWrite(this->backwardPWMChannel, speed);
+                ledcWrite(this->_backwardPWMChannel, speed);
             } else {
-                ledcWrite(this->forwardPWMChannel, 0);
+                ledcWrite(this->_forwardPWMChannel, 0);
                 //vTaskDelay(deadTime / portTICK_PERIOD_MS);
-                ledcWrite(this->backwardPWMChannel,  speed);
+                ledcWrite(this->_backwardPWMChannel,  speed);
                 this->currentDirection = direction;
             }
                 #ifdef MOTOR_DEBUG
@@ -62,8 +62,8 @@ void Motor::driveMotor(int speed, int direction)
 
 void Motor::stopMotor()
 {
-    ledcWrite(this->forwardPWMChannel, 0);
-    ledcWrite(this->backwardPWMChannel, 0);
+    ledcWrite(this->_forwardPWMChannel, 0);
+    ledcWrite(this->_backwardPWMChannel, 0);
 }
 
 void Motor::driveForward(int speed)
@@ -78,10 +78,10 @@ void Motor::driveReverse(int speed)
 
 int Motor::getForwardPWMPin()
 {
-    return this->forwardPWMPin;
+    return this->_forwardPWMPin;
 }
 
 int Motor::getBackwardPWMPin()
 {
-    return this->backwardPWMPin;
+    return this->_backwardPWMPin;
 }

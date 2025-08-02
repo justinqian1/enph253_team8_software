@@ -5,82 +5,82 @@
 #include "CustomServo.h"
 
 
-CustomServo::CustomServo(int pin, int channel) : servoPin(pin), pwmChannel(channel), servoPosition(0), periodHertz(50),
-                                                 minPulse(1000), maxPulse(2000), rotationMultiplier(1.0)
+CustomServo::CustomServo(int pin, int channel) : _servoPin(pin), _pwmChannel(channel), _servoPosition(0), _periodHertz(50),
+                                                 _minPulse(1000), _maxPulse(2000), _rotationMultiplier(1.0)
 {
-    ledcSetup(this->pwmChannel, 50, 16);
-    ledcAttachPin(this->servoPin, this->pwmChannel);
+    ledcSetup(this->_pwmChannel, 50, 16);
+    ledcAttachPin(this->_servoPin, this->_pwmChannel);
 }
 
-CustomServo::CustomServo(int pin, int channel, int position) : servoPin(pin), pwmChannel(channel),
-                                                               servoPosition(position), periodHertz(50), minPulse(1000),
-                                                               maxPulse(2000), rotationMultiplier(1.0)
+CustomServo::CustomServo(int pin, int channel, int position) : _servoPin(pin), _pwmChannel(channel),
+                                                               _servoPosition(position), _periodHertz(50), _minPulse(1000),
+                                                               _maxPulse(2000), _rotationMultiplier(1.0)
 {
-    ledcSetup(this->pwmChannel, 50, 16);
-    ledcAttachPin(this->servoPin, this->pwmChannel);
+    ledcSetup(this->_pwmChannel, 50, 16);
+    ledcAttachPin(this->_servoPin, this->_pwmChannel);
 }
 
-CustomServo::CustomServo(int pin, int channel, int position, int hertz) : servoPin(pin), pwmChannel(channel),
-                                                                          servoPosition(position), periodHertz(hertz),
-                                                                          minPulse(1000), maxPulse(2000), rotationMultiplier(1.0)
+CustomServo::CustomServo(int pin, int channel, int position, int hertz) : _servoPin(pin), _pwmChannel(channel),
+                                                                          _servoPosition(position), _periodHertz(hertz),
+                                                                          _minPulse(1000), _maxPulse(2000), _rotationMultiplier(1.0)
 {
-    ledcSetup(this->pwmChannel, this->periodHertz, 16);
-    ledcAttachPin(this->servoPin, this->pwmChannel);
+    ledcSetup(this->_pwmChannel, this->_periodHertz, 16);
+    ledcAttachPin(this->_servoPin, this->_pwmChannel);
 }
 
 CustomServo::CustomServo(int pin, int channel, int position, int hertz, unsigned long min, unsigned long max) :
-    servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(hertz), minPulse(min), maxPulse(max), 
-    rotationMultiplier(1.0)
+    _servoPin(pin), _pwmChannel(channel), _servoPosition(position), _periodHertz(hertz), _minPulse(min), _maxPulse(max), 
+    _rotationMultiplier(1.0)
 {
-    ledcSetup(this->pwmChannel, this->periodHertz, 16);
-    ledcAttachPin(this->servoPin, this->pwmChannel);
+    ledcSetup(this->_pwmChannel, this->_periodHertz, 16);
+    ledcAttachPin(this->_servoPin, this->_pwmChannel);
 }
 
 CustomServo::CustomServo(int pin, int channel, int position, int hertz, unsigned long min, unsigned long max, double multiplier) :
-    servoPin(pin), pwmChannel(channel), servoPosition(position), periodHertz(hertz), minPulse(min), maxPulse(max), 
-    rotationMultiplier(multiplier)
+    _servoPin(pin), _pwmChannel(channel), _servoPosition(position), _periodHertz(hertz), _minPulse(min), _maxPulse(max), 
+    _rotationMultiplier(multiplier)
 {
-    ledcSetup(this->pwmChannel, this->periodHertz, 16);
-    ledcAttachPin(this->servoPin, this->pwmChannel);
+    ledcSetup(this->_pwmChannel, this->_periodHertz, 16);
+    ledcAttachPin(this->_servoPin, this->_pwmChannel);
 }
 
-int CustomServo::getPosition() { return this->servoPosition; }
+int CustomServo::getPosition() { return this->_servoPosition; }
 
-int CustomServo::getPin() { return this->servoPin; }
+int CustomServo::getPin() { return this->_servoPin; }
 
 void CustomServo::rotateTo(int position)
 {
-    position = constrain(position, 0, 180*this->rotationMultiplier);
+    position = constrain(position, 0, 180*this->_rotationMultiplier);
     int posAsLedcValue = posToLedcWrite(position);
     //Serial2Pi.print("writing ledc position");
     //Serial2Pi.println(posAsLedcValue);
     int pulse_us = pulseLength(posAsLedcValue);
-    uint32_t duty = dutyCycle(pulse_us) * maxDuty;
+    uint32_t duty = dutyCycle(pulse_us) * _maxDuty;
     Serial.print("Servo Pin: ");
-    Serial.println(this->servoPin);
+    Serial.println(this->_servoPin);
     Serial.print("Duty: ");
     Serial.println(duty);
-    ledcWrite(this->pwmChannel, duty);
-    this->servoPosition = position;
+    ledcWrite(this->_pwmChannel, duty);
+    this->_servoPosition = position;
 }
 
 void CustomServo::rotateTo(int position, int time)
 {
-    int numTicks = abs(this->servoPosition - position);
+    int numTicks = abs(this->_servoPosition - position);
     int tickTime = time / numTicks;
-    if (this->servoPosition < position)
+    if (this->_servoPosition < position)
     {
-        while (this->servoPosition < position)
+        while (this->_servoPosition < position)
         {
-            rotateTo(++this->servoPosition);
+            rotateTo(++this->_servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     }
-    else if (this->servoPosition > position)
+    else if (this->_servoPosition > position)
     {
-        while (this->servoPosition > position)
+        while (this->_servoPosition > position)
         {
-            rotateTo(--this->servoPosition);
+            rotateTo(--this->_servoPosition);
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     }
@@ -92,8 +92,8 @@ void CustomServo::write(int position){
 
 void CustomServo::rotateBy(int degrees) {
     //Serial2Pi.print("rotating to position");
-    //Serial2Pi.println(servoPosition + degrees);
-    rotateTo(this->servoPosition + degrees);
+    //Serial2Pi.println(_servoPosition + degrees);
+    rotateTo(this->_servoPosition + degrees);
 }
 
 //PRIVATE FUNCTIONS
@@ -101,22 +101,22 @@ void CustomServo::rotateBy(int degrees) {
 int CustomServo::pulseLength(int pos)
 {
     Serial.print("Map: ");
-    Serial.println(map(pos,0,180,minPulse,maxPulse));
-    return map(pos, 0, 180, this->minPulse, this->maxPulse);
+    Serial.println(map(pos,0,180,_minPulse,_maxPulse));
+    return map(pos, 0, 180, this->_minPulse, this->_maxPulse);
 }
 
 double CustomServo::dutyCycle(int length)
 {
     Serial.print("Duty Function: ");
-    Serial.println(1e6 / static_cast<double>(periodHertz));
-    double period = 1e6 / static_cast<double>(this->periodHertz);
+    Serial.println(1e6 / static_cast<double>(_periodHertz));
+    double period = 1e6 / static_cast<double>(this->_periodHertz);
     return (length) / (double)period;
 }
 
 int CustomServo::posToLedcWrite(int pos) {
     Serial.print("Multiplier: ");
-    Serial.println((int)round((double)pos / rotationMultiplier));
+    Serial.println((int)round((double)pos / _rotationMultiplier));
     Serial.print("Mult Value : ");
-    Serial.println(rotationMultiplier);
-    return (int)round((double)pos / this->rotationMultiplier);
+    Serial.println(_rotationMultiplier);
+    return (int)round((double)pos / this->_rotationMultiplier);
 }
