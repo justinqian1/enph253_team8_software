@@ -10,7 +10,7 @@
 #include "hardware/IRSensor.h"
 #include "constants.h"
 
-class DriveMotors {
+class RobotWheels {
 public:
     /**
      * Creates an object that represents a set of driving motors
@@ -19,7 +19,7 @@ public:
      * @param lIRSensor the left IR sensor
      * @param rIRSensor the right IR sensor
      */
-    DriveMotors(Motor *lMotor, Motor *rMotor, IRSensor *lIRSensor, IRSensor *rIRSensor);
+    RobotWheels(Motor &lMotor, Motor &rMotor, IRSensor &lIRSensor, IRSensor &rIRSensor);
 
     /**
      * Drives the robot with PID control, with variable parameters

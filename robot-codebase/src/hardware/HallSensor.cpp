@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "Hallsensor.h"
+#include "HallSensor.h"
 #include "constants.h"  /* For voltage ref and threshold*/
 
 /* serial.println(analogread(halleffect))
@@ -22,7 +22,7 @@ double HallSensor::readVoltage() {
 bool HallSensor::magnetDetected(double voltage) {
     return (voltage < MAGNET_THRESHOLD_VOLTAGE) ;
 }
-/*
+
 /* Read voltage, check for magnet, and format a log message*/
 /*
 String HallSensor::senseAndLog() {

@@ -52,17 +52,21 @@ void CustomServo::rotateTo(int position)
 {
     position = constrain(position, 0, 180*this->rotationMultiplier);
     int posAsLedcValue = posToLedcWrite(position);
-    //Serial2Pi.print("writing ledc position");
-    //Serial2Pi.println(posAsLedcValue);
+    Serial.print("writing ledc position");
+    Serial.println(posAsLedcValue);
     int pulse_us = pulseLength(posAsLedcValue);
     uint32_t duty = dutyCycle(pulse_us) * maxDuty;
-    Serial.print("Servo Pin: ");
-    Serial.println(this->servoPin);
-    Serial.print("Duty: ");
-    Serial.println(duty);
     ledcWrite(this->pwmChannel, duty);
     this->servoPosition = position;
 }
+/*
+multiplier=2 for simplicity
+start at 180, want to go to 90
+getPosition() returns 180
+write pwm of 45 (90 / multiplier)
+    - pwm is the only thing that doesnt line up to absolute position
+servo position however returns duty*multiplier
+*/
 
 void CustomServo::rotateTo(int position, int time)
 {
@@ -91,8 +95,8 @@ void CustomServo::write(int position){
 }
 
 void CustomServo::rotateBy(int degrees) {
-    //Serial2Pi.print("rotating to position");
-    //Serial2Pi.println(servoPosition + degrees);
+    Serial.print("rotating to position");
+    Serial.println(servoPosition + degrees);
     rotateTo(this->servoPosition + degrees);
 }
 
@@ -100,23 +104,15 @@ void CustomServo::rotateBy(int degrees) {
 
 int CustomServo::pulseLength(int pos)
 {
-    Serial.print("Map: ");
-    Serial.println(map(pos,0,180,minPulse,maxPulse));
     return map(pos, 0, 180, this->minPulse, this->maxPulse);
 }
 
 double CustomServo::dutyCycle(int length)
 {
-    Serial.print("Duty Function: ");
-    Serial.println(1e6 / static_cast<double>(periodHertz));
     double period = 1e6 / static_cast<double>(this->periodHertz);
     return (length) / (double)period;
 }
 
 int CustomServo::posToLedcWrite(int pos) {
-    Serial.print("Multiplier: ");
-    Serial.println((int)round((double)pos / rotationMultiplier));
-    Serial.print("Mult Value : ");
-    Serial.println(rotationMultiplier);
     return (int)round((double)pos / this->rotationMultiplier);
 }
