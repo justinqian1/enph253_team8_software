@@ -22,4 +22,4 @@ bool magnetDetected(double voltage);
     private:
     adc1_channel_t _adcChannel;
 };
-#endif //HALLSENSOR_H
+#endif

@@ -675,7 +675,7 @@ void full_turn_test(void *parameters) {
 }
 // add more functions here
 
-void setup()
+/*void setup()
 {
     // put your setup code here, to run once:
     if (run) { // WILL NEED FULL REWRITE
@@ -872,7 +872,7 @@ void setup()
 
 }
 
-void loop()
+/*void loop()
 {
     // MG996R.rotateTo(90);
     // pickUpPet();
@@ -893,6 +893,18 @@ void loop()
         // Serial.println(clawFullyExtended);
         // delay(1000);
         // PUT TEST CODE HERE
+<<<<<<< HEAD
+        /*
+        drive(speed);
+        delay(1000/pwmFreq);
+        testServo.setAngle(180);
+        delay(100);
+        testServo.setAngle(90);
+        delay(100);
+        testServo.setAngle(0);
+        delay(100);
+        
+=======
 
         // if (!rotationTested) {
         //     testRotation();
@@ -925,7 +937,38 @@ void loop()
         ledcWrite(12,1638);
         delay(1000);
         Serial.println("At 0");
+>>>>>>> 6b6185235fb30d4b27458f68e8d4a37d55abf4b5
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler
+
+    
+}*/
+#include <Arduino.h>
+#include "driver/adc.h"
+
+void setup() {
+  Serial.begin(115200);
+  delay(1000);
+
+  adc1_config_width(ADC_WIDTH_12Bit); // 0–4095 resolution
+  adc1_config_channel_atten(ADC1_CHANNEL_4, ADC_ATTEN_DB_12); // GPIO32
+
+  Serial.println("Starting Hall Sensor detection...");
+}
+
+void loop() {
+  int raw = adc1_get_raw(ADC1_CHANNEL_4);  // Read ADC raw value
+
+  Serial.print("Hall Voltage: ");
+  Serial.print(raw);
+ 
+  // Magnet detection logic (outside 1600–1900 range = magnet detected)
+  if (raw > 1820 || raw < 1600) {
+    Serial.println(" | Magnet: Yes");
+  } else {
+    Serial.println(" | Magnet: No");
+  }
+
+  delay(500);  // Delay between readings
 }
