@@ -111,7 +111,7 @@ constexpr uint32_t maxSwitchID=4;
 constexpr int switchPollFrequency = 20;
 
 // hall sensor 
-#ifndef CONSTANTS_H
+// #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
 #define HALL_SENSOR_PIN 32
@@ -120,7 +120,7 @@ constexpr int switchPollFrequency = 20;
 #define MAGNET_THRESHOLD_VOLTAGE 0.3
 
 
-#endif //PINASSIGNMENTS_H
+// #endif //PINASSIGNMENTS_H
 constexpr double hallVoltageRef = 3.3;
 constexpr double magnetThresholdVoltage = 1.5;
 

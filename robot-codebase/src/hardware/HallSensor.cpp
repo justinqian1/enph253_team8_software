@@ -6,13 +6,13 @@
 */
 
 
-HallSensor::HallSensor(int pin) : hallPin(pin) {
-    pinMode(pin, INPUT);               // Use the instance variable
-    analogReadResolution(12);
+HallSensor::HallSensor(adc1_channel_t hallChannel) : _adcChannel(hallChannel) {
+    adc1_config_width(ADC_WIDTH_12Bit); // 0–4095 resolution
+    adc1_config_channel_atten(_adcChannel, ADC_ATTEN_DB_12); // GPIO32
 }
 
 double HallSensor::readVoltage() {
-    int sensorValue = analogRead(hallPin); // Read from the correct pin
+    int sensorValue = analogRead(_adcChannel); // Read from the correct pin
     float voltage = sensorValue * (HALL_VOLTAGE_REF / 4095.0);
     return voltage;
 }
