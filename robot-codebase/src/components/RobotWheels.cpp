@@ -46,7 +46,7 @@ void RobotWheels::drivePID(int speed, int kp,
     proportional = kp * _distance;
     derivative = (int) ((float) kd * (float) (_distance - _last_distance) / (float) (_qDist + _mDist));
     // i+=ki*distance;
-    ctrl = proportional + derivative;
+    ctrl = (proportional + derivative) * speed  / maxSpeed;
     _mDist++;
 
     leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), 1);
