@@ -8,10 +8,10 @@ class HallSensor {
 HallSensor(int pin);
 
 /* Read voltage from the analog pin (scaled from raw ADC) */
-float readVoltage();
+double readVoltage();
 
 /* Return true if voltage is below threshold */
-bool magnetDetected(float voltage);
+bool magnetDetected(double voltage);
 
 /* Format sensor voltage and detection into a readable message */
 //String HallSensor::senseAndLog();
@@ -19,4 +19,4 @@ bool magnetDetected(float voltage);
     private:
     int hallPin;
 };
-#endif HALLSENSOR_H
+#endif

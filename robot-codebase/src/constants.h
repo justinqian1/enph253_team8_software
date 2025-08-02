@@ -73,9 +73,11 @@ constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define HALL_SENSOR_PIN 35
+#define HALL_SENSOR_PIN 32
+
 #define HALL_VOLTAGE_REF 3.3
-#define MAGNET_THRESHOLD_VOLTAGE 1.5
+#define MAGNET_THRESHOLD_VOLTAGE 0.3
+
 
 #endif //PINASSIGNMENTS_H
 
