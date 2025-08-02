@@ -777,7 +777,6 @@ void setup()
         //     &drive_handle // task handle
         // );
         Serial.begin(9600);
-        delay(2000);
         rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
         leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
         carriageMotor = new Motor(carriageHeightPwmChannelUp, carriageUpPin, carriageHeightPwmChannelDown, carriageDownPin);
@@ -785,11 +784,14 @@ void setup()
         leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
         rightIRSensor = new IRSensor(ADC1_CHANNEL_7);
         robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
-        SG90 = new CustomServo(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
+        SG90 = new CustomServo(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, 544, 2400);
         MG996R = new CustomServo(MG996RPin,carriageServoPwmChannel, carriageForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
         Serial.println("MG996R DEBUG");
         Serial.print("Pin: ");
         Serial.println(MG996R->getPin());
+
+        ledcSetup(12,50,16);
+        ledcAttachPin(26,12);
         // ledcSetup(0,pwmFreq, 12);
         // ledcSetup(1,pwmFreq, 12);
         // ledcSetup(2,pwmFreq,12);
@@ -847,23 +849,23 @@ void setup()
         //     &poll_switch_handle   // Handle
         // );
         // DRIVING
-        xTaskCreate(
-            test_drive,
-            "Drive",
-            4096,
-            robot,
-            1,
-            nullptr
-        );
+        // xTaskCreate(
+        //     test_drive,
+        //     "Drive",
+        //     4096,
+        //     robot,
+        //     1,
+        //     nullptr
+        // );
         
-        xTaskCreate(
-            test_servo,
-            "Servoing",
-            4096,
-            MG996R,
-            1,
-            nullptr
-        );
+        // xTaskCreate(
+        //     test_servo,
+        //     "Servoing",
+        //     4096,
+        //     SG90,
+        //     1,
+        //     nullptr
+        // );
         // configIRSensors();
         // attachDriveMotorPins(true);
     }
@@ -916,6 +918,13 @@ void loop()
         // ledcWrite(leftPwmChannelFwd,3000);
         // delay(1000);
         //robot.driveStraight(3000,1);
+
+        ledcWrite(12,7864);
+        delay(1000);
+        Serial.println("At 270");
+        ledcWrite(12,1638);
+        delay(1000);
+        Serial.println("At 0");
     }
 
     // to be left empty, robot should run in the freeRTOS task scheduler

@@ -84,7 +84,7 @@ void CustomServo::rotateTo(int position, int time)
             vTaskDelay(tickTime / portTICK_PERIOD_MS);
         }
     }
-}
+}   
 
 void CustomServo::write(int position){ 
     rotateTo(position);

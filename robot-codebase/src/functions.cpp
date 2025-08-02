@@ -81,7 +81,7 @@ void pickUpPet() {
     extendClaw(true);
     // receive input from hall effect
     closeClaw(true);
-    delay(1000);
+    vTaskDelay(1000);
     petsPickedUp++;
     Serial2Pi.printf("Pet picked up!\n");
     //dropPetInBasket();
@@ -97,7 +97,7 @@ void dropPetInBasket() {
     extendClaw(false); // retract claw
     MG996R->rotateTo(carriageMaxRightPos); //rotate to max angle
     closeClaw(false); // open claw
-    delay(1500); // give time to drop pet
+    vTaskDelay(1500); // give time to drop pet
     extendClaw(true); // re extend claw
     prepareForNextPickup();
 }

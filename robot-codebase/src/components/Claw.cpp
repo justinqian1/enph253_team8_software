@@ -5,8 +5,8 @@
 #include "Claw.h"
 
 Claw::Claw(CustomServo &rotation, CustomServo &grab, Motor &carriage, Motor &extension,
-           HallSensor &hall) : rotationServo(rotation), grabServo(grab), carriageMotor(carriage),
-                               extensionMotor(extension), hallSensor(hall) {
+           HallSensor &hall, RotaryEncoder &rotary) : rotationServo(rotation), grabServo(grab), carriageMotor(carriage),
+                               extensionMotor(extension), hallSensor(hall), rotaryEncoder(rotary) {
     // constructor
 }
 
@@ -24,7 +24,7 @@ void Claw::extend(int distance) {
 
 }
 
-void Claw::rise(int height) {}
+void Claw::rise(bool up) {}
 
 void Claw::setTurretAngle(int angle) {
     rotationServo.rotateTo(angle);
@@ -34,10 +34,13 @@ void Claw::rotate(int angle) {
     rotationServo.rotateBy(angle);
 }
 
-void explode() {
+int Claw::getExtensionPosition() {
+}
+
+void Claw::explode() {
     Serial.println("Now why would you do that to our poor robot?");
 }
 
-void throwPet() {
+void Claw::throwPet() {
 
 }
