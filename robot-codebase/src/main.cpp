@@ -778,7 +778,7 @@ void setup()
         //     1,            // priority
         //     &drive_handle // task handle
         // );
-        Serial.begin(9600);
+        Serial.begin(115200);
         rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
         leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
         carriageMotor = new Motor(carriageHeightPwmChannelUp, carriageUpPin, carriageHeightPwmChannelDown, carriageDownPin);

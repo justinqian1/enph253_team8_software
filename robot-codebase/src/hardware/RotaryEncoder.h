@@ -6,6 +6,7 @@
 #define ROTARYENCODER_H
 
 #include "driver/gpio.h"
+#include "Arduino.h"
 
 
 class RotaryEncoder {

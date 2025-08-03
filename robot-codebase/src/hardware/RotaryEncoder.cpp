@@ -4,8 +4,6 @@
 
 #include "RotaryEncoder.h"
 
-#include <esp32-hal-gpio.h>
-
 RotaryEncoder* RotaryEncoder::instance = nullptr;
 constexpr int RotaryEncoder::lookupTable[16];
 RotaryEncoder::RotaryEncoder(int _pinA, int pinB) :  _pinA(_pinA), pinB(pinB) {
