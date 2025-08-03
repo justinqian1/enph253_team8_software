@@ -33,9 +33,9 @@ constexpr int clawRetPin = 8;
 
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
-constexpr int SG90Pin = 14;
+constexpr int SG90Pin = 12;
 //constexpr int DSPin = 12;
-constexpr int MG996RPin = 12; // ds1 on esp
+constexpr int MG996RPin = 14; // ds1 on esp
 constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
@@ -46,8 +46,8 @@ constexpr int clawExtendedSwitch = 33;
 constexpr int clawRetractedSwitch = 26;
 
 //temp rotary encoder pins
-constexpr int rotaryA = 0;
-constexpr int rotaryB = 4;
+constexpr int rotaryA = 38;
+constexpr int rotaryB = 37;
 
 // general constants
 constexpr int pwmFreq = 500;
@@ -62,7 +62,7 @@ constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
 constexpr int defaultKProp = 1000; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 900;
+constexpr int defaultKDeriv = 1300;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
@@ -79,8 +79,8 @@ constexpr double horizontal_fov=62.2;
 constexpr int servoFreq = 50;
 constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
-constexpr double MG996RMultiplier = 1.316;
-constexpr int carriageForwardPos=90;
+constexpr double MG996RMultiplier = 2.0;
+constexpr int carriageForwardPos=180;
 constexpr int carriageMaxLeftPos=0;
 constexpr int carriageMaxRightPos=(int)(180.0*MG996RMultiplier);
 
