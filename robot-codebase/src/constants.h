@@ -23,10 +23,10 @@ constexpr int leftDriveFwdPin =20; // outputs the pwm channel according to ledcA
 constexpr int leftDriveBwdPin = 21;
 constexpr int rightDriveFwdPin = 19;
 constexpr int rightDriveBwdPin = 22;
-constexpr int carriageUpPin = 5;
-constexpr int carriageDownPin = 10;
-constexpr int clawExtPin =  7;
-constexpr int clawRetPin = 8;
+constexpr int carriageUpPin = 8;
+constexpr int carriageDownPin = 7;
+constexpr int clawExtPin = 10;
+constexpr int clawRetPin = 5;
 
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
@@ -37,10 +37,14 @@ constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
 constexpr int startSwitch = 39;
-constexpr int carriageLOW = 26;
-constexpr int carriageHIGH = 33; 
-constexpr int clawExtendedSwitch = 32;
-constexpr int clawRetractedSwitch = 25;
+//carriage low is connected to switch connected to pin 32
+// claw ext connected to pin 33
+// claw ret connected to pin 26
+// carriage high connected to pin 25
+constexpr int carriageLOW = 32;
+constexpr int carriageHIGH = 25; 
+constexpr int clawExtendedSwitch = 33;
+constexpr int clawRetractedSwitch = 26;
 
 //temp rotary encoder pins
 constexpr int rotaryA = 37;
@@ -54,7 +58,7 @@ constexpr int thresholdL = 2000;
 constexpr int thresholdR = 2000;
 constexpr int defaultSpeed = 3600;
 constexpr int maxSpeed = 4095; // set a max pwm output
-constexpr int minSpeed = 800;    // set a min pwm output
+constexpr int minSpeed = 600;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
@@ -80,15 +84,15 @@ constexpr int servoMaxDuty = 2500;
 constexpr double MG996RMultiplier = 2.0;
 constexpr int turretForwardPos=180;
 constexpr int turretMaxLeftPos=0;
-constexpr int turretMaxRightPos=(int)(180.0*MG996RMultiplier);
+constexpr int turretMaxRightPos=330;
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
-constexpr int clawExtSpeed=2000;
-constexpr int carriageDownSpeed = 3500;
-constexpr int carriageUpSpeed = 4095;
+constexpr int clawExtSpeed=2400;
+constexpr int carriageDownSpeed = 3000;
+constexpr int carriageUpSpeed = 3000;
 
 // SG90 (claw closing)
 constexpr int clawOpenPos = 180;
@@ -108,6 +112,13 @@ enum SwitchHit : uint8_t {
 constexpr uint32_t minSwitchID=1;
 constexpr uint32_t maxSwitchID=4;
 constexpr int switchPollFrequency = 20;
+
+enum ClawPosition : uint8_t {
+    FULL_RETRACT = 0,
+    PART_RETRACT = 1,
+    FULL_EXTEND = 2
+};
+constexpr int clawPartRetractTime = 220; // ms
 
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;

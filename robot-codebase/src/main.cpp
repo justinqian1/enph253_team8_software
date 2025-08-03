@@ -38,6 +38,7 @@ bool rotationTested=false; // for testing
 volatile bool carriageHigh = false;
 volatile bool carriageLow = false;
 volatile bool clawFullyExtended = false;
+volatile bool clawPartRetracted = false;
 volatile bool clawFullyRetracted = false;
 
 // PID vars
@@ -105,10 +106,9 @@ RotaryEncoder* rotaryEncoder;
 void resetVars();
 int distToTape();
 double angleToCenter(double petX);
-void drive(int avgSpeedInput);
 void configIRSensors();
 void moveCarriage(bool up);
-void extendClaw (bool outwards);
+void extendClaw (uint8_t position);
 void closeClaw(bool close);
 void pickUpPet();
 void dropPetInBasket();
@@ -167,40 +167,54 @@ void moveCarriage(bool up) {
 
     // move carriage
     // currently commented out bc motor no work
-    // if (up) {
-    //     carriageMotor->driveForward(3500);
-    //     delay(1000);
-    //     carriageMotor->driveForward(carriageUpSpeed);
-    //  } else {
-    //     carriageMotor->driveReverse(carriageDownSpeed);
-    //  } 
+    if (up) {
+        carriageMotor->driveForward(carriageUpSpeed);
+     } else {
+        carriageMotor->driveReverse(carriageDownSpeed);
+     } 
     Serial2Pi.println(up ? "Moving carriage upwards" : "Moving carriage downwards");
     uint32_t switchToPoll;
     up ? switchToPoll = CARRIAGE_HIGH_SWITCH : switchToPoll = CARRIAGE_LOW_SWITCH;
     pollSwitch(switchToPoll);
 }
 
-void extendClaw (bool outwards) {
+void extendClaw (uint8_t position) {
     // if already moved to target position
-    if (outwards && clawFullyExtended ||
-       !outwards && clawFullyRetracted) {
+    if (position == FULL_EXTEND && clawFullyExtended ||
+        position == PART_RETRACT && clawPartRetracted ||
+        position == FULL_RETRACT && clawFullyRetracted) {
         return;
     }
 
     // move claw
-    uint32_t switchToPoll;
-    if (outwards) {
-        Serial2Pi.println("Claw extending");
-        clawFullyRetracted = false;
-        clawExtMotor->driveForward(clawExtSpeed);
-        switchToPoll = CLAW_EXT_SWITCH;
-    } else {
-        Serial2Pi.println("Claw retracting");
-        clawFullyExtended = false;
-        clawExtMotor->driveReverse(clawExtSpeed);
-        switchToPoll = CLAW_RET_SWITCH;
+    switch (position) {
+        case FULL_EXTEND:
+            Serial2Pi.println("Claw extending");
+            clawFullyRetracted = false;
+            clawPartRetracted = false;
+            clawExtMotor->driveForward(clawExtSpeed);
+            pollSwitch(CLAW_EXT_SWITCH);
+            break;
+        case FULL_RETRACT:
+            Serial2Pi.println("Claw retracting");
+            clawFullyExtended = false;
+            clawPartRetracted = false;
+            clawExtMotor->driveReverse(clawExtSpeed);
+            pollSwitch(CLAW_RET_SWITCH);
+            break;
+        case PART_RETRACT:
+            if (!clawFullyExtended) {
+                extendClaw(FULL_EXTEND);
+            }
+            Serial2Pi.println("Claw partial retracting");
+            clawFullyExtended = false;
+            clawFullyRetracted = false;
+            clawExtMotor->driveReverse(clawExtSpeed);
+            delay(clawPartRetractTime); // allow motor to run
+            clawPartRetracted = true;
+            clawExtMotor->stopMotor();
+            Serial2Pi.println("Claw partially retracted");
     }
-    pollSwitch(switchToPoll);
 }
 
 void closeClaw(bool close) {
@@ -224,7 +238,7 @@ void pickUpPet() {
     } else if (!targetHeight && !carriageLow) {
         moveCarriage(false);
     }
-    extendClaw(true);
+    extendClaw(FULL_EXTEND);
     // receive input from hall effect
     closeClaw(true);
     delay(2000);
@@ -239,7 +253,7 @@ void dropPetInBasket() {
         //xTaskNotify(raise_carriage_handle, true, eSetValueWithOverwrite); // moves carriage up if it's low; DOESN'T WORK RN
     }
     
-    extendClaw(false); // retract claw
+    extendClaw(PART_RETRACT); // retract claw
     turretServo->rotateTo(turretMaxRightPos); //rotate to max angle
     closeClaw(false); // open claw
     delay(2000); // give time to drop pet
@@ -248,6 +262,9 @@ void dropPetInBasket() {
 
 void prepareForNextPickup() {
     Serial2Pi.println("Preparing for next pickup");
+    extendClaw(FULL_RETRACT);
+    turretServo->rotateTo(270);
+    extendClaw(PART_RETRACT);
     pickupSide[petsPickedUp] ? turretServo->rotateTo(turretForwardPos-45) : turretServo->rotateTo(turretForwardPos+45);
     // now claw should be open, carriage should be high and rotated properly
     speed=defaultSpeed;
@@ -371,10 +388,10 @@ void home()
      */
     
     //extends claw, then moves carriage down then back up, then retracts claw
-    extendClaw(true);
+    extendClaw(FULL_EXTEND);
     moveCarriage(false);
     moveCarriage(true);
-    extendClaw(false); // claw at full retraction at start
+    extendClaw(PART_RETRACT); // claw at full retraction at start
 
     clawCloseServo->rotateTo(clawOpenPos);
     turretServo->rotateTo(turretForwardPos);
@@ -531,7 +548,7 @@ void detect_task(void *parameters)
                 } else {
                     // not close enough - update angle and speed
                     turretServo->rotateBy((int)(round(angleFromCenter)));
-                    int tempSpeedCeiling = (int)(-1.3*petArea+5000.0); // arbitrary function for now, decreases speed as pet draws closer
+                    int tempSpeedCeiling = (int)(-1.4*petArea+5000.0); // arbitrary function for now, decreases speed as pet draws closer
                     int currentSpeed = speed;
                     tempSpeedCeiling=max(tempSpeedCeiling,minSpeed); // make sure speed is positive
                     speed=min(currentSpeed,tempSpeedCeiling);
@@ -750,38 +767,30 @@ void setup()
         robot = new RobotWheels(*leftMotor, *rightMotor, *leftIRSensor, *rightIRSensor);
         carriageMotor = new Motor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
         clawExtMotor = new Motor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
-
-        // for closing the claw
         clawCloseServo = new CustomServo(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
-
-        // for rotating turret
         turretServo = new CustomServo(MG996RPin,carriageServoPwmChannel, turretForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
-
-        // rotaryEncoder = new RotaryEncoder(rotaryA, rotaryB);
-        // xTaskCreate(
-        //     detect_task,   // function to be run
-        //     "Detecting",   // description of task
-        //     4096,          // bytes allocated to this stack
-        //     NULL,          // parameters, dependent on function
-        //     1,             // priority
-        //     &detect_handle // task handle
-        // );
-        // xTaskCreate(
-        //     drive_task,   // function to be run
-        //     "Driving",    // description of task
-        //     4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
-        //     NULL,         // parameters, dependent on function
-        //     1,            // priority
-        //     &drive_handle // task handle
-        // );
-        Serial.begin(9600);
-
-        pinMode(rotaryA, INPUT_PULLUP);
-        pinMode(rotaryB, INPUT_PULLUP);
-        attachInterrupt(rotaryA, encoderRead, CHANGE);
 
         // limit switches
         setupLimitSwitches();
+
+        xTaskCreate(
+            detect_task,   // function to be run
+            "Detecting",   // description of task
+            4096,          // bytes allocated to this stack
+            NULL,          // parameters, dependent on function
+            1,             // priority
+            &detect_handle // task handle
+        );
+        xTaskCreate(
+            drive_task,   // function to be run
+            "Driving",    // description of task
+            4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
+            NULL,         // parameters, dependent on function
+            1,            // priority
+            &drive_handle // task handle
+        );
+        // Serial.begin(9600);
+
 
         // xTaskCreate(
         //     raise_carriage_task,  // Task function
@@ -818,7 +827,6 @@ void loop()
     // testRotation();
     // pickUpPet();
     // delay(3000);
-    if (!run) {
         // Serial.println("Testing carriage");
         // moveCarriage(!carriageHigh);
         // Serial.print("Carriage position now ");
@@ -840,17 +848,16 @@ void loop()
         //     rotationTested=true; 
         // }
         // turretServo->rotateTo(90);
-        Serial.print("A: ");
-        Serial.print(digitalRead(rotaryA));
-        Serial.print(" B ");
-        Serial.print(digitalRead(rotaryB));
-        Serial.print(" ISR: ");
-        Serial.print(isrTrigger);
-        Serial.print(" ");
-        Serial.println(rotaryPosition);
+        // Serial.print("A: ");
+        // Serial.print(digitalRead(rotaryA));
+        // Serial.print(" B ");
+        // Serial.print(digitalRead(rotaryB));
+        // Serial.print(" ISR: ");
+        // Serial.print(isrTrigger);
+        // Serial.print(" ");
+        // Serial.println(rotaryPosition);
         // robot.driveStraight(2000,1);
-        delay(400);
-    }
+        // delay(400);
 
     // to be left empty, robot should run in the freeRTOS task scheduler
 }
