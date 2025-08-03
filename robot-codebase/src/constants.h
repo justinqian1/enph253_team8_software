@@ -30,21 +30,21 @@ constexpr int clawRetPin = 8;
 
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
-constexpr int SG90Pin = 14;
-//constexpr int DSPin = 12;
-constexpr int MG996RPin = 12; // ds1 on esp
+constexpr int SG90Pin = 12; //orig=14
+//constexpr int DSPin = 12; //orig = 12
+constexpr int MG996RPin = 14; // orig=13
 constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
 constexpr int startSwitch = 39;
-constexpr int carriageLOW = 32;
-constexpr int carriageHIGH = 25;
-constexpr int clawExtendedSwitch = 33;
-constexpr int clawRetractedSwitch = 26;
+constexpr int carriageLOW = 26;
+constexpr int carriageHIGH = 33; 
+constexpr int clawExtendedSwitch = 32;
+constexpr int clawRetractedSwitch = 25;
 
 //temp rotary encoder pins
-constexpr int rotaryA = 0;
-constexpr int rotaryB = 4;
+constexpr int rotaryA = 37;
+constexpr int rotaryB = 38;
 
 // general constants
 constexpr int pwmFreq = 500;
@@ -59,13 +59,13 @@ constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
 constexpr int defaultKProp = 1000; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 1200;
+constexpr int defaultKDeriv = 1300;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
 //thresholds for pick up
-constexpr int angleThreshold=75;
-constexpr int clawCenterThreshold=30; //px from center
+constexpr int angleThreshold=80;
+constexpr double clawCenterThreshold=5.0; //angle from center
 constexpr double areaThresholdForPickup=3500.0;
 
 // misc cv params
@@ -77,8 +77,8 @@ constexpr double horizontal_fov=62.2;
 constexpr int servoFreq = 50;
 constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
-constexpr double MG996RMultiplier = 1.316;
-constexpr int turretForwardPos=90;
+constexpr double MG996RMultiplier = 2.0;
+constexpr int turretForwardPos=180;
 constexpr int turretMaxLeftPos=0;
 constexpr int turretMaxRightPos=(int)(180.0*MG996RMultiplier);
 
@@ -87,7 +87,8 @@ constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
 constexpr int clawExtSpeed=2000;
-constexpr int carriageSpeed = 4095;
+constexpr int carriageDownSpeed = 3500;
+constexpr int carriageUpSpeed = 4095;
 
 // SG90 (claw closing)
 constexpr int clawOpenPos = 180;
