@@ -17,6 +17,7 @@ extern IRSensor* rightIRSensor;//(ADC1_CHANNEL_7);
 extern RobotWheels* robot;//(leftMotor, rightMotor, leftIRSensor, rightIRSensor);
 extern CustomServo* SG90;
 extern CustomServo* MG996R;
+extern RotaryEncoder* rotaryEncoder;
 
 // task handles
 

@@ -9,6 +9,7 @@ CustomServo* SG90 = nullptr;
 CustomServo* MG996R = nullptr;
 Motor* carriageMotor = nullptr;
 Motor* clawExtMotor = nullptr;
+RotaryEncoder* rotaryEncoder = nullptr;
 
 TaskHandle_t drive_handle = nullptr;
 TaskHandle_t grab_handle = nullptr;

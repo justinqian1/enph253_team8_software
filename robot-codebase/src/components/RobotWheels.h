@@ -69,7 +69,7 @@ protected:
     int _mDist = 0;
     int proportional = 0;
     int derivative = 0;
-    int maxSpeed = 2500;
+    int maxSpeed = 4095;
     int minSpeed = 0;
     int ctrl = 0;
     int leftReading = 0;

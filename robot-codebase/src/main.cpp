@@ -791,7 +791,7 @@ void setup()
         Serial.println("MG996R DEBUG");
         Serial.print("Pin: ");
         Serial.println(MG996R->getPin());
-
+        rotaryEncoder = new RotaryEncoder(37,38);
         ledcSetup(12,50,16);
         ledcAttachPin(26,12);
         // ledcSetup(0,pwmFreq, 12);
@@ -931,12 +931,13 @@ void loop()
         // delay(1000);
         //robot.driveStraight(3000,1);
 
-        ledcWrite(12,7864);
-        delay(1000);
-        Serial.println("At 270");
-        ledcWrite(12,1638);
-        delay(1000);
-        Serial.println("At 0");
+        // ledcWrite(12,7864);
+        // delay(1000);
+        // Serial.println("At 270");
+        // ledcWrite(12,1638);
+        // delay(1000);
+        // Serial.println("At 0");
+        Serial.println(rotaryEncoder->read());
     }
 
 //     // to be left empty, robot should run in the freeRTOS task scheduler
