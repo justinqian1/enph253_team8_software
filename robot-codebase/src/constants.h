@@ -30,7 +30,7 @@ constexpr int clawRetPin = 5;
 
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
-constexpr int SG90Pin = 12; //orig=14
+constexpr int SG90Pin = 13; //orig=14
 //constexpr int DSPin = 12; //orig = 12
 constexpr int MG996RPin = 14; // orig=13
 constexpr int basketSwitch = 25;
@@ -58,7 +58,7 @@ constexpr int thresholdL = 2000;
 constexpr int thresholdR = 2000;
 constexpr int defaultSpeed = 3600;
 constexpr int maxSpeed = 4095; // set a max pwm output
-constexpr int minSpeed = 600;    // set a min pwm output
+constexpr int minSpeed = 400;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
@@ -69,6 +69,7 @@ constexpr int dir2 = 1;
 
 //thresholds for pick up
 constexpr int angleThreshold=80;
+constexpr int stopDriveThreshold=95;
 constexpr double clawCenterThreshold=5.0; //angle from center
 constexpr double areaThresholdForPickup=3500.0;
 
@@ -84,7 +85,7 @@ constexpr int servoMaxDuty = 2500;
 constexpr double MG996RMultiplier = 2.0;
 constexpr int turretForwardPos=180;
 constexpr int turretMaxLeftPos=0;
-constexpr int turretMaxRightPos=330;
+constexpr int turretMaxRightPos=350;
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;
@@ -95,8 +96,8 @@ constexpr int carriageDownSpeed = 3000;
 constexpr int carriageUpSpeed = 3000;
 
 // SG90 (claw closing)
-constexpr int clawOpenPos = 180;
-constexpr int clawClosedPos = 0;
+constexpr int clawOpenPos = 0;
+constexpr int clawClosedPos = 180;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
