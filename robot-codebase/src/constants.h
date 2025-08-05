@@ -37,10 +37,6 @@ constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
 constexpr int startSwitch = 39;
-//carriage low is connected to switch connected to pin 26 (25?)
-// claw ext connected to pin 33 | 25
-// claw ret connected to pin 32
-// carriage high connected to pin 33 (25/26?)
 constexpr int carriageLOW = 26; // not connected??
 constexpr int carriageHIGH = 33; // hits both low and high
 constexpr int clawExtendedSwitch = 25;
@@ -54,11 +50,12 @@ constexpr int rotaryB = 38;
 constexpr int pwmFreq = 500;
 
 // driving related constants
-constexpr int thresholdL = 1800;
-constexpr int thresholdR = 2200;
+constexpr int thresholdL = 2000;
+constexpr int thresholdR = 3000;
 constexpr int defaultSpeed = 3600;
 constexpr int maxSpeed = 4095; // set a max pwm output
-constexpr int minSpeed = 800;    // set a min pwm output
+constexpr int minSpeed = 600;    // set a min pwm output
+constexpr int minDriveSpeed = 1600;
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
@@ -77,6 +74,7 @@ constexpr double areaThresholdForPickup=3500.0;
 constexpr int imgSize=320;
 constexpr int imgCenter=160;
 constexpr double horizontal_fov=62.2;
+constexpr int maxLineLength=40;
 
 // turret/servo setup
 constexpr int servoFreq = 50;
@@ -84,15 +82,14 @@ constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
 constexpr double MG996RMultiplier = 2.0;
 constexpr int turretForwardPos=180;
-constexpr int turretTempForwardPos=70;
 constexpr int turretMaxLeftPos=0;
-constexpr int turretMaxRightPos=280;
+constexpr int turretMaxRightPos=350;
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
-constexpr int clawExtSpeed=2000;
+constexpr int clawExtSpeed=2200;
 constexpr int carriageDownSpeed = 3500;
 constexpr int carriageUpSpeed = 3500;
 
@@ -120,7 +117,7 @@ enum ClawPosition : uint8_t {
     PART_RETRACT = 1,
     FULL_EXTEND = 2
 };
-constexpr int clawPartRetractTime = 220; // ms
+constexpr int clawPartRetractTime = 300; // ms
 
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;

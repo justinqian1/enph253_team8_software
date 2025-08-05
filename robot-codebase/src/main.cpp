@@ -24,6 +24,7 @@ TaskHandle_t test_raise_carriage_handle = nullptr;
 TaskHandle_t poll_switch_handle = nullptr;
 TaskHandle_t full_turn_handle = nullptr;
 TaskHandle_t detect_handle = nullptr;
+TaskHandle_t read_uart_handle = nullptr;
 TaskHandle_t idle_handle = nullptr;
 
 // initialize serial port for Pi communication
@@ -60,9 +61,9 @@ int rightSpeed = 0;
 int lastOnTape = 0; // -1: left; 1: right
 
 // pet location vars
-double petX = 0;
-double petArea = 0;
-double angleFromCenter = 0;
+// float petX = 0;
+// float petArea = 0;
+// float angleFromCenter = 0;
 
 //booleans for pick up
 bool closeEnough = false;
@@ -84,6 +85,16 @@ volatile int lastEncodedBitValue  = 0;
 constexpr int lookupTable[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
 volatile int isrTrigger = 0;
 volatile unsigned long lastTime = 0;
+
+// UART
+typedef struct {
+    float petX;
+    float petArea;
+    float angleFromCenter;
+} PetInfo;
+
+QueueHandle_t petInfoQueue;
+
 
 // servos
 // for closing the claw
@@ -129,7 +140,7 @@ double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in i
  */
 void resetVars() {
     if (carriageHigh) {
-        turretServo->rotateTo(turretTempForwardPos);
+        turretServo->rotateTo(turretForwardPos);
     }
     closeEnough = false;
     clawCentered = false;
@@ -270,7 +281,7 @@ void prepareForNextPickup() {
     pickupSide[petsPickedUp] ? turretServo->rotateTo(turretForwardPos-45) : turretServo->rotateTo(turretForwardPos+45);
     // now claw should be open, carriage should be high and rotated properly
     speed=defaultSpeed;
-    vTaskResume(drive_handle);
+    // vTaskResume(drive_handle);
 }
 
 void testRotation() {    
@@ -301,17 +312,17 @@ void testRotation() {
     // turretServo->rotateTo(180);
     // Serial.println("position should be back to 180");
     // delay(2000);
-    turretServo->rotateTo(turretTempForwardPos);
+    turretServo->rotateTo(turretForwardPos);
     delay(1500);
-    turretServo->rotateTo(0);
+    turretServo->rotateTo(90);
     delay(1500);
-    turretServo->rotateTo(turretTempForwardPos);
+    turretServo->rotateTo(turretForwardPos);
         delay(1500);
-    turretServo->rotateTo(180);
+    turretServo->rotateTo(270);
         delay(1500);
-    turretServo->rotateBy(90);
+    turretServo->rotateBy(350);
         delay(1500);
-    turretServo->rotateTo(turretTempForwardPos);
+    turretServo->rotateTo(turretForwardPos);
         delay(1500);
 }
 
@@ -510,6 +521,39 @@ void home_task(void *parameters)
     vTaskDelete(NULL);
 }
 
+void read_uart_task(void *parameters) {
+    char line[maxLineLength];
+    int lineIdx=0;
+    while (1) {
+        while (Serial2Pi.available()) {
+            char c = Serial2Pi.read();
+            if (c == '\n') {
+                line[lineIdx] = '\0';
+                char *newline = strpbrk(line, "\r\n");
+                if (newline) *newline = '\0';
+                PetInfo petInfo;
+                if (strcmp(line,"[SYSTEM MESSAGE] RESET")==0) {
+                    resetVars();
+                    turretServo->rotateTo(turretForwardPos);
+                    Serial2Pi.printf("System message 'RESET' received\n");
+                } else if (sscanf(line, "%f,%f,%f", &petInfo.petX, &petInfo.petArea, &petInfo.angleFromCenter) >= 3) {
+                    Serial2Pi.printf("ESP received: x=%.2f, area=%.2f, angle from center=%.2f\n", petInfo.petX, petInfo.petArea, petInfo.angleFromCenter);
+                    xQueueOverwrite(petInfoQueue, &petInfo);
+                } else {
+                    Serial2Pi.printf("Failed to parse line: %s\n", line);
+                    //23.01,2630.02,-0.52
+                }
+                lineIdx = 0; // reset buffer
+                memset(line, 0, sizeof(line)); 
+            } else {
+                line[lineIdx++] = c;
+
+            }
+        }
+        vTaskDelay(pdMS_TO_TICKS(3));
+    }
+}
+
 /**
  * this task handles detection of pets through serial communication with the Raspberry Pi 5. It signals the home_claw_task
  * to update its position. It also signals when a pet is close enough to be picked up to operate the grab task.
@@ -518,71 +562,80 @@ void home_task(void *parameters)
 void detect_task(void *parameters)
 {
     // detection code for determining pet location
-    while (1) {
-        if (Serial2Pi.available()) {
-            String line = Serial2Pi.readStringUntil('\n');
-            if (line=="[SYSTEM MESSAGE] RESET") {
-                resetVars();
-                turretServo->rotateTo(turretTempForwardPos);
-                //rotationTested=false;
-                Serial2Pi.printf("System message 'RESET' received\n");
-            } else if (line.length()>1) {
+    PetInfo petInfo;
+    while(1) {
+    if (xQueueReceive(petInfoQueue,&petInfo,portMAX_DELAY)==pdPASS) {
+        // if (Serial2Pi.available()) {
+        //     String line = Serial2Pi.readStringUntil('\n');
+        //     if (line=="[SYSTEM MESSAGE] RESET") {
+        //         resetVars();
+        //         turretServo->rotateTo(turretForwardPos);
+        //         //rotationTested=false;
+        //         Serial2Pi.printf("System message 'RESET' received\n");
+        //     } else if (line.length()>1) {
+            // if (line=="[SYSTEM MESSAGE] RESET") {
+            //     resetVars();
+            //     turretServo->rotateTo(turretForwardPos);
+            //     Serial2Pi.printf("System message 'RESET' received\n");
+            // } else {
                 // pet in visual range AND large enough (done on pi)
-                sscanf(line.c_str(), "%lf,%lf,%lf", &petX, &petArea, &angleFromCenter);
-                Serial2Pi.printf("ESP received: x=%.2lf, area=%.2lf, angle from center=%.2lf\n", petX, petArea, angleFromCenter);
+                // sscanf(line, "%f,%f,%f", &petX, &petArea, &angleFromCenter);
+                // Serial2Pi.printf("ESP received: x=%.2lf, area=%.2lf, angle from center=%.2lf\n", petX, petArea, angleFromCenter);
+        
+        int currentAngle=turretServo->getPosition();
+        Serial2Pi.printf("servo angle: %d\n",currentAngle);
 
-                int currentAngle=turretServo->getPosition();
-                Serial2Pi.printf("servo angle: %d\n",currentAngle);
+        //check if pet big enough for pickup
+        closeEnough = petInfo.petArea > areaThresholdForPickup;
 
-                //check if pet big enough for pickup
-                closeEnough = petArea > areaThresholdForPickup;
+        // check if angle is correct (off forward direction by at least 80 deg)
+        anglePastThreshold = (currentAngle < turretForwardPos - angleThreshold ||
+                            currentAngle > turretForwardPos + angleThreshold);
 
-                // check if angle is correct (off forward direction by at least 80 deg)
-                anglePastThreshold = (currentAngle < turretTempForwardPos - angleThreshold ||
-                                  currentAngle > turretTempForwardPos + angleThreshold);
+        anglePastStopDriveThreshold = (currentAngle < turretForwardPos - stopDriveThreshold ||
+                                        currentAngle > turretForwardPos + stopDriveThreshold);
 
-                anglePastStopDriveThreshold = (currentAngle < turretTempForwardPos - stopDriveThreshold ||
-                                               currentAngle > turretTempForwardPos + stopDriveThreshold);
+        // check if claw is centered on pet
+        clawCentered = abs(petInfo.angleFromCenter) < clawCenterThreshold; 
 
-                // check if claw is centered on pet
-                clawCentered = abs(angleFromCenter) < clawCenterThreshold; 
+        // check if ready for pickup
+        Serial2Pi.printf("Claw centered: %d\n",clawCentered);
+        Serial2Pi.printf("Pet close enough: %d\n",closeEnough);
+        Serial2Pi.printf("Angle past threshold: %d\n",anglePastThreshold);
 
-                // check if ready for pickup
-                Serial2Pi.printf("Claw centered: %d\n",clawCentered);
-                Serial2Pi.printf("Pet close enough: %d\n",closeEnough);
-                Serial2Pi.printf("Angle past threshold: %d\n",anglePastThreshold);
-
-                if (clawCentered && closeEnough && anglePastThreshold) {
-                //if (closeEnough) {
-                    Serial2Pi.printf("Initiating pickup...\n");
-                    robot->stop();
-                    vTaskSuspend(drive_handle);
-                    // pickUpPet();
-                    Serial2Pi.printf("Pet picked up!\n");
-                    delay(3000); // allow robot to start going again before detect task restarts
-                    vTaskResume(drive_handle);
-                    while (Serial2Pi.available()) {
-                        Serial2Pi.read();  // Clears input buffer to avoid retriggering 
-                    }
-                } else if (closeEnough && anglePastStopDriveThreshold) {
-                    Serial2Pi.printf("Stopping drive\n");
-                    robot->stop();
-                    vTaskSuspend(drive_handle);
-                } else {
-                    // not close enough - update angle and speed
-                    double rotateKP=0.8;
-                    int rotationAmount = (int)(round(angleFromCenter*rotateKP));
-                    turretServo->rotateBy(rotationAmount);
-                    int tempSpeedCeiling = (int)(-1.3*petArea+5000.0); // arbitrary function for now, decreases speed as pet draws closer
-                    int currentSpeed = speed;
-                    tempSpeedCeiling=max(tempSpeedCeiling,minSpeed); // make sure speed is positive
-                    speed=min(currentSpeed,tempSpeedCeiling);
-                    Serial2Pi.printf("robot speed: %d\n",speed);
-                }
+        if (clawCentered && closeEnough && anglePastThreshold) {
+        //if (closeEnough) {
+            Serial2Pi.printf("Initiating pickup...\n");
+            robot->stop();
+            vTaskSuspend(drive_handle);
+            vTaskSuspend(read_uart_handle);
+            // pickUpPet();
+            Serial2Pi.printf("Pet picked up!\n");
+            vTaskDelay(pdMS_TO_TICKS(3000)); // allow robot to start going again before detect task restarts
+            vTaskResume(drive_handle);
+            vTaskResume(read_uart_handle);
+            while (Serial2Pi.available()) {
+                Serial2Pi.read();  // Clears input buffer to avoid retriggering 
             }
+        } else if (closeEnough && anglePastStopDriveThreshold) {
+            Serial2Pi.printf("Stopping drive\n");
+            robot->stop();
+            vTaskSuspend(drive_handle);
+        } else {
+            // not close enough - update angle and speed
+            double rotateKP=0.8;
+            int rotationAmount = (int)(round(petInfo.angleFromCenter*rotateKP));
+            turretServo->rotateBy(rotationAmount);
+            int tempSpeedCeiling = (int)(-1.3*petInfo.petArea+5000.0); // arbitrary function for now, decreases speed as pet draws closer
+            int currentSpeed = speed;
+            tempSpeedCeiling=max(tempSpeedCeiling,minDriveSpeed); // make sure speed is positive
+            speed=min(currentSpeed,tempSpeedCeiling);
+            Serial2Pi.printf("robot speed: %d\n",speed);
         }
-        vTaskDelay(pdMS_TO_TICKS(20));
-    }
+            
+        
+        // vTaskDelay(pdMS_TO_TICKS(20));
+    }}
 }
 
 void raise_carriage_task(void *parameters) {
@@ -793,27 +846,36 @@ void setup()
         carriageMotor = new Motor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
         clawExtMotor = new Motor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
         clawCloseServo = new CustomServo(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
-        turretServo = new CustomServo(MG996RPin,carriageServoPwmChannel, turretTempForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
+        turretServo = new CustomServo(MG996RPin,carriageServoPwmChannel, turretForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
 
         // limit switches
         setupLimitSwitches();
+        petInfoQueue = xQueueCreate(1, sizeof(PetInfo));
 
-        xTaskCreate(
-            detect_task,   // function to be run
-            "Detecting",   // description of task
-            4096,          // bytes allocated to this stack
-            NULL,          // parameters, dependent on function
-            1,             // priority
-            &detect_handle // task handle
-        );
-        xTaskCreate(
-            drive_task,   // function to be run
-            "Driving",    // description of task
-            4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
-            NULL,         // parameters, dependent on function
-            1,            // priority
-            &drive_handle // task handle
-        );
+        // xTaskCreate(
+        //     detect_task,   // function to be run
+        //     "Detecting",   // description of task
+        //     4096,          // bytes allocated to this stack
+        //     NULL,          // parameters, dependent on function
+        //     1,             // priority
+        //     &detect_handle // task handle
+        // );
+        // xTaskCreate(
+        //     read_uart_task,   // function to be run
+        //     "Read UART",   // description of task
+        //     4096,          // bytes allocated to this stack
+        //     NULL,          // parameters, dependent on function
+        //     1,             // priority
+        //     &read_uart_handle // task handle
+        // );
+        // xTaskCreate(
+        //     drive_task,   // function to be run
+        //     "Driving",    // description of task
+        //     4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
+        //     NULL,         // parameters, dependent on function
+        //     1,            // priority
+        //     &drive_handle // task handle
+        // );
         // Serial.begin(9600);
 
 
@@ -848,35 +910,31 @@ void setup()
 void loop()
 {
     // home();
-    // turretServo->rotateTo(turretTempForwardPos);
+    // turretServo->rotateTo(180);
     // testRotation();
-    // pickUpPet();
+    pickUpPet();
     // Serial2Pi.println("pickup done!");
-    // delay(6000);
+    delay(6000);
     // Serial.println("Testing carriage");
     // moveCarriage(!carriageHigh);
     // Serial.print("Carriage position now ");
     // Serial.println(carriageHigh);
     // delay(3000);
 
-    // Serial.println("Testing claw");
-    // extendClaw(clawFullyRetracted);
-    // Serial.print("Claw retracted? ");
-    // Serial.println(clawFullyRetracted);
-    // Serial.print("Claw extended? ");
-    // Serial.println(clawFullyExtended);
+    // extendClaw(PART_RETRACT);
+    // delay(1000);
+    // extendClaw(FULL_RETRACT);
     // delay(1000);
         // PUT TEST CODE HERE
 
-        // if (!rotationTested) {
-        //     // turretServo->rotateTo(turretTempForwardPos);
-        //     // closeClaw(true);
-        //     // moveCarriage(true);
-        //     // turretServo->rotateTo(turretMaxRightPos);
-        //     // closeClaw(false);
-        //     testRotation();
-        //     rotationTested=true; 
-        // }
+        if (!rotationTested) {
+            // turretServo->rotateTo(turretForwardPos);
+            // moveCarriage(true);
+            // turretServo->rotateTo(turretMaxRightPos);
+            // testRotation();
+            // rotationTested=true; 
+        }         
+
         // turretServo->rotateTo(90);
         // Serial.print("A: ");
         // Serial.print(digitalRead(rotaryA));
