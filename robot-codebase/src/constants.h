@@ -50,23 +50,23 @@ constexpr int rotaryB = 38;
 constexpr int pwmFreq = 500;
 
 // driving related constants
-constexpr int thresholdL = 2000;
-constexpr int thresholdR = 3000;
-constexpr int defaultSpeed = 3600;
+constexpr int thresholdL = 1600;
+constexpr int thresholdR = 2800; 
+constexpr int defaultSpeed = 3400;
 constexpr int maxSpeed = 4095; // set a max pwm output
-constexpr int minSpeed = 600;    // set a min pwm output
+constexpr int minSpeed = 1000;    // set a min pwm output
 constexpr int minDriveSpeed = 1600;
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
-constexpr int defaultKProp = 1000; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 1300;
+constexpr int defaultKProp = 900; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 1200;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
 //thresholds for pick up
 constexpr int angleThreshold=80;
-constexpr int stopDriveThreshold=95;
+constexpr int stopDriveThreshold=100;
 constexpr double clawCenterThreshold=5.0; //angle from center
 constexpr double areaThresholdForPickup=3500.0;
 
