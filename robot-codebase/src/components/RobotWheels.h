@@ -69,16 +69,16 @@ protected:
     int _mDist = 0;
     int proportional = 0;
     int derivative = 0;
-    int maxSpeed = 2500;
-    int minSpeed = 0;
+    // int maxSpeed = 2500;
+    // int minSpeed = 0;
     int ctrl = 0;
     int leftReading = 0;
     int rightReading = 0;
     bool leftOnTape = 1;
     bool rightOnTape = 1;
     int lastOnTape = 0;
-    int leftThreshold = 3100;
-    int rightThreshold = 3100;
+    // int leftThreshold = 3100;
+    // int rightThreshold = 3100;
 
     /**
      * calculates the current distance from the tape

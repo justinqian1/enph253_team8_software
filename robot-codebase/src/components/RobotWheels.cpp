@@ -51,7 +51,7 @@ void RobotWheels::drivePID(int speed, int kp,
 
     leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), 1);
     rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), 1);
-#ifdef ROBOT_DEBUG
+//#ifdef ROBOT_DEBUG
     leftReading = leftIRSensor.read();
     rightReading = rightIRSensor.read();
     Serial.print("Left reading");
@@ -62,7 +62,7 @@ void RobotWheels::drivePID(int speed, int kp,
     Serial.println(constrain(speed - ctrl, minSpeed, maxSpeed));
     Serial.print("Right speed:");
     Serial.println(constrain(speed + ctrl, minSpeed, maxSpeed));
-#endif 
+//#endif 
 }
 
 void RobotWheels::stop() {
@@ -93,8 +93,8 @@ void RobotWheels::driveRightMotor(int speed, int direction) {
 int RobotWheels::distToTape()
 {
     int dist = 0;
-    leftOnTape = leftIRSensor.readThreshold(leftThreshold); // adc1 ch6 = pin 34
-    rightOnTape = rightIRSensor.readThreshold(rightThreshold); // adc1 ch7 = pin 35
+    leftOnTape = leftIRSensor.readThreshold(thresholdL); // adc1 ch6 = pin 34
+    rightOnTape = rightIRSensor.readThreshold(thresholdR); // adc1 ch7 = pin 35
     if (leftOnTape && rightOnTape)
     {
         dist = 0;

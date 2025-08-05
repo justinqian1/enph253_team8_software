@@ -19,32 +19,32 @@ constexpr int carriageServoPwmChannel = 8;
 constexpr int clawClosingServoPwmChannel = 9;
 
 // ESP32 pins
-constexpr int leftDriveFwdPin =20; // outputs the pwm channel according to ledcAttachPin
-constexpr int leftDriveBwdPin = 21;
-constexpr int rightDriveFwdPin = 19;
-constexpr int rightDriveBwdPin = 22;
-constexpr int carriageUpPin = 8;
-constexpr int carriageDownPin = 7;
-constexpr int clawExtPin = 10;
-constexpr int clawRetPin = 5;
+constexpr int leftDriveFwdPin =22; // outputs the pwm channel according to ledcAttachPin
+constexpr int leftDriveBwdPin = 19;
+constexpr int rightDriveFwdPin = 21;
+constexpr int rightDriveBwdPin = 20;
+constexpr int carriageUpPin = 5;
+constexpr int carriageDownPin = 10;
+constexpr int clawExtPin = 7;
+constexpr int clawRetPin = 8;
 
 constexpr int irSensorLeft = 9;
 constexpr int irSensorRight = 35;
-constexpr int SG90Pin = 13; //orig=14
+constexpr int SG90Pin = 12; //orig=14
 //constexpr int DSPin = 12; //orig = 12
-constexpr int MG996RPin = 14; // orig=13
+constexpr int MG996RPin = 13; // orig=13
 constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
 constexpr int startSwitch = 39;
-//carriage low is connected to switch connected to pin 32
-// claw ext connected to pin 33
-// claw ret connected to pin 26
-// carriage high connected to pin 25
-constexpr int carriageLOW = 32;
-constexpr int carriageHIGH = 25; 
-constexpr int clawExtendedSwitch = 33;
-constexpr int clawRetractedSwitch = 26;
+//carriage low is connected to switch connected to pin 26 (25?)
+// claw ext connected to pin 33 | 25
+// claw ret connected to pin 32
+// carriage high connected to pin 33 (25/26?)
+constexpr int carriageLOW = 26; // not connected??
+constexpr int carriageHIGH = 33; // hits both low and high
+constexpr int clawExtendedSwitch = 25;
+constexpr int clawRetractedSwitch = 32;
 
 //temp rotary encoder pins
 constexpr int rotaryA = 37;
@@ -54,11 +54,11 @@ constexpr int rotaryB = 38;
 constexpr int pwmFreq = 500;
 
 // driving related constants
-constexpr int thresholdL = 2000;
-constexpr int thresholdR = 2000;
+constexpr int thresholdL = 1800;
+constexpr int thresholdR = 2200;
 constexpr int defaultSpeed = 3600;
 constexpr int maxSpeed = 4095; // set a max pwm output
-constexpr int minSpeed = 400;    // set a min pwm output
+constexpr int minSpeed = 800;    // set a min pwm output
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
@@ -84,20 +84,21 @@ constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2500;
 constexpr double MG996RMultiplier = 2.0;
 constexpr int turretForwardPos=180;
+constexpr int turretTempForwardPos=70;
 constexpr int turretMaxLeftPos=0;
-constexpr int turretMaxRightPos=350;
+constexpr int turretMaxRightPos=280;
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
-constexpr int clawExtSpeed=2400;
-constexpr int carriageDownSpeed = 3000;
-constexpr int carriageUpSpeed = 3000;
+constexpr int clawExtSpeed=2000;
+constexpr int carriageDownSpeed = 3500;
+constexpr int carriageUpSpeed = 3500;
 
 // SG90 (claw closing)
-constexpr int clawOpenPos = 0;
-constexpr int clawClosedPos = 180;
+constexpr int clawOpenPos = 165;
+constexpr int clawClosedPos = 45;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;

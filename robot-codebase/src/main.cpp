@@ -129,7 +129,7 @@ double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in i
  */
 void resetVars() {
     if (carriageHigh) {
-        turretServo->rotateTo(turretForwardPos);
+        turretServo->rotateTo(turretTempForwardPos);
     }
     closeEnough = false;
     clawCentered = false;
@@ -169,11 +169,11 @@ void moveCarriage(bool up) {
 
     // move carriage
     // currently commented out bc motor no work
-    // if (up) {
-    //     carriageMotor->driveForward(carriageUpSpeed);
-    //  } else {
-    //     carriageMotor->driveReverse(carriageDownSpeed);
-    //  } 
+    if (up) {
+        carriageMotor->driveForward(carriageUpSpeed);
+    } else {
+        carriageMotor->driveReverse(carriageDownSpeed);
+    } 
     Serial2Pi.println(up ? "Moving carriage upwards" : "Moving carriage downwards");
     uint32_t switchToPoll;
     up ? switchToPoll = CARRIAGE_HIGH_SWITCH : switchToPoll = CARRIAGE_LOW_SWITCH;
@@ -274,33 +274,45 @@ void prepareForNextPickup() {
 }
 
 void testRotation() {    
+    // turretServo->rotateTo(180);
+    // Serial.println("position set to 180");
+    // delay(2000);
+
+    // turretServo->rotateBy(-90);
+    // Serial.println("position should be 90");
+    // delay(2000);
+
+    // turretServo->rotateBy(-60);
+    // Serial.println("position should be 30");
+    // delay(2000);
+
+    // turretServo->rotateTo(180);
+    // Serial.println("position should be 180");
+    // delay(2000);
+
+    // turretServo->rotateBy(90);
+    // Serial.println("position should be 270");
+    // delay(2000);
+
+    // turretServo->rotateBy(60);
+    // Serial.println("position should be 330");
+    // delay(2000);
+
+    // turretServo->rotateTo(180);
+    // Serial.println("position should be back to 180");
+    // delay(2000);
+    turretServo->rotateTo(turretTempForwardPos);
+    delay(1500);
+    turretServo->rotateTo(0);
+    delay(1500);
+    turretServo->rotateTo(turretTempForwardPos);
+        delay(1500);
     turretServo->rotateTo(180);
-    Serial.println("position set to 180");
-    delay(2000);
-
-    turretServo->rotateBy(-90);
-    Serial.println("position should be 90");
-    delay(2000);
-
-    turretServo->rotateBy(-60);
-    Serial.println("position should be 30");
-    delay(2000);
-
-    turretServo->rotateTo(180);
-    Serial.println("position should be 180");
-    delay(2000);
-
+        delay(1500);
     turretServo->rotateBy(90);
-    Serial.println("position should be 270");
-    delay(2000);
-
-    turretServo->rotateBy(60);
-    Serial.println("position should be 330");
-    delay(2000);
-
-    turretServo->rotateTo(180);
-    Serial.println("position should be back to 180");
-    delay(2000);
+        delay(1500);
+    turretServo->rotateTo(turretTempForwardPos);
+        delay(1500);
 }
 
 /**
@@ -511,7 +523,7 @@ void detect_task(void *parameters)
             String line = Serial2Pi.readStringUntil('\n');
             if (line=="[SYSTEM MESSAGE] RESET") {
                 resetVars();
-                turretServo->rotateTo(turretForwardPos);
+                turretServo->rotateTo(turretTempForwardPos);
                 //rotationTested=false;
                 Serial2Pi.printf("System message 'RESET' received\n");
             } else if (line.length()>1) {
@@ -526,11 +538,11 @@ void detect_task(void *parameters)
                 closeEnough = petArea > areaThresholdForPickup;
 
                 // check if angle is correct (off forward direction by at least 80 deg)
-                anglePastThreshold = (currentAngle < turretForwardPos - angleThreshold ||
-                                  currentAngle > turretForwardPos + angleThreshold);
+                anglePastThreshold = (currentAngle < turretTempForwardPos - angleThreshold ||
+                                  currentAngle > turretTempForwardPos + angleThreshold);
 
-                anglePastStopDriveThreshold = (currentAngle < turretForwardPos - stopDriveThreshold ||
-                                               currentAngle > turretForwardPos + stopDriveThreshold);
+                anglePastStopDriveThreshold = (currentAngle < turretTempForwardPos - stopDriveThreshold ||
+                                               currentAngle > turretTempForwardPos + stopDriveThreshold);
 
                 // check if claw is centered on pet
                 clawCentered = abs(angleFromCenter) < clawCenterThreshold; 
@@ -545,8 +557,10 @@ void detect_task(void *parameters)
                     Serial2Pi.printf("Initiating pickup...\n");
                     robot->stop();
                     vTaskSuspend(drive_handle);
-                    pickUpPet();
-                    delay(1000); // allow robot to start going again before detect task restarts
+                    // pickUpPet();
+                    Serial2Pi.printf("Pet picked up!\n");
+                    delay(3000); // allow robot to start going again before detect task restarts
+                    vTaskResume(drive_handle);
                     while (Serial2Pi.available()) {
                         Serial2Pi.read();  // Clears input buffer to avoid retriggering 
                     }
@@ -557,8 +571,9 @@ void detect_task(void *parameters)
                 } else {
                     // not close enough - update angle and speed
                     double rotateKP=0.8;
-                    turretServo->rotateBy((int)(round(angleFromCenter*rotateKP)));
-                    int tempSpeedCeiling = (int)(-1.4*petArea+5000.0); // arbitrary function for now, decreases speed as pet draws closer
+                    int rotationAmount = (int)(round(angleFromCenter*rotateKP));
+                    turretServo->rotateBy(rotationAmount);
+                    int tempSpeedCeiling = (int)(-1.3*petArea+5000.0); // arbitrary function for now, decreases speed as pet draws closer
                     int currentSpeed = speed;
                     tempSpeedCeiling=max(tempSpeedCeiling,minSpeed); // make sure speed is positive
                     speed=min(currentSpeed,tempSpeedCeiling);
@@ -778,7 +793,7 @@ void setup()
         carriageMotor = new Motor(carriageHeightPwmChannelUp,carriageUpPin,carriageHeightPwmChannelDown,carriageDownPin);
         clawExtMotor = new Motor(clawExtPwmChannelExt,clawExtPin,clawExtPwmChannelRet,clawRetPin);
         clawCloseServo = new CustomServo(SG90Pin, clawClosingServoPwmChannel, clawOpenPos, servoFreq, servoMinDuty, servoMaxDuty);
-        turretServo = new CustomServo(MG996RPin,carriageServoPwmChannel, turretForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
+        turretServo = new CustomServo(MG996RPin,carriageServoPwmChannel, turretTempForwardPos, servoFreq, servoMinDuty, servoMaxDuty, MG996RMultiplier);
 
         // limit switches
         setupLimitSwitches();
@@ -833,34 +848,32 @@ void setup()
 void loop()
 {
     // home();
-    // turretServo->rotateTo(turretForwardPos);
+    // turretServo->rotateTo(turretTempForwardPos);
     // testRotation();
-    // closeClaw(true);
-    // Serial.println("claw closed");
-    // delay(2000);
-    // closeClaw(false);
-    // Serial.println("claw opened");
-    // delay(2000);
     // pickUpPet();
     // Serial2Pi.println("pickup done!");
     // delay(6000);
-        // Serial.println("Testing carriage");
-        // moveCarriage(!carriageHigh);
-        // Serial.print("Carriage position now ");
-        // Serial.println(carriageHigh);
+    // Serial.println("Testing carriage");
+    // moveCarriage(!carriageHigh);
+    // Serial.print("Carriage position now ");
+    // Serial.println(carriageHigh);
+    // delay(3000);
 
-        // delay(3000);
-
-        // Serial.println("Testing claw");
-        // extendClaw(clawFullyRetracted);
-        // Serial.print("Claw retracted? ");
-        // Serial.println(clawFullyRetracted);
-        // Serial.print("Claw extended? ");
-        // Serial.println(clawFullyExtended);
-        // delay(1000);
+    // Serial.println("Testing claw");
+    // extendClaw(clawFullyRetracted);
+    // Serial.print("Claw retracted? ");
+    // Serial.println(clawFullyRetracted);
+    // Serial.print("Claw extended? ");
+    // Serial.println(clawFullyExtended);
+    // delay(1000);
         // PUT TEST CODE HERE
 
         // if (!rotationTested) {
+        //     // turretServo->rotateTo(turretTempForwardPos);
+        //     // closeClaw(true);
+        //     // moveCarriage(true);
+        //     // turretServo->rotateTo(turretMaxRightPos);
+        //     // closeClaw(false);
         //     testRotation();
         //     rotationTested=true; 
         // }
