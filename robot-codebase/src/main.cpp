@@ -850,15 +850,15 @@ void setup()
         //     4,                    // Priority
         //     &poll_switch_handle   // Handle
         // );
-        // DRIVING
-        // xTaskCreate(
-        //     test_drive,
-        //     "Drive",
-        //     4096,
-        //     robot,
-        //     1,
-        //     nullptr
-        // );
+        //DRIVING
+        xTaskCreate(
+            test_drive,
+            "Drive",
+            4096,
+            robot,
+            1,
+            nullptr
+        );
         
         // xTaskCreate(
         //     test_servo,
@@ -937,7 +937,15 @@ void loop()
         // ledcWrite(12,1638);
         // delay(1000);
         // Serial.println("At 0");
-        Serial.println(rotaryEncoder->read());
+        // Serial.println(rotaryEncoder->read());
+        // robot->driveStraight(3000,1);
+        // leftMotor->driveMotor(3000,1);
+        // rightMotor->driveMotor(3000,1);
+        // delay(3000);
+        // // robot->driveStraight(1000,0);
+        // leftMotor->driveMotor(1000,0);
+        // rightMotor->driveMotor(1000,0);
+        // delay(3000);
     }
 
 //     // to be left empty, robot should run in the freeRTOS task scheduler
