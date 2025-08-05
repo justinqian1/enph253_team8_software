@@ -559,7 +559,7 @@ void detect_task(void *parameters)
                     vTaskSuspend(drive_handle);
                     // pickUpPet();
                     Serial2Pi.printf("Pet picked up!\n");
-                    delay(3000); // allow robot to start going again before detect task restarts
+                    vTaskDelay(3000); // allow robot to start going again before detect task restarts
                     vTaskResume(drive_handle);
                     while (Serial2Pi.available()) {
                         Serial2Pi.read();  // Clears input buffer to avoid retriggering 
@@ -782,9 +782,9 @@ void setup()
     }
 
     if (!run) {
-        Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
-        Serial2Pi.write("Hello from the ESP32!");
-        
+        // Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
+        // Serial2Pi.write("Hello from the ESP32!");
+        Serial.begin(9600);
         rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
         leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
         leftIRSensor = new IRSensor(ADC1_CHANNEL_6);
@@ -798,41 +798,41 @@ void setup()
         // limit switches
         setupLimitSwitches();
 
-        xTaskCreate(
-            detect_task,   // function to be run
-            "Detecting",   // description of task
-            4096,          // bytes allocated to this stack
-            NULL,          // parameters, dependent on function
-            1,             // priority
-            &detect_handle // task handle
-        );
-        xTaskCreate(
-            drive_task,   // function to be run
-            "Driving",    // description of task
-            4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
-            NULL,         // parameters, dependent on function
-            1,            // priority
-            &drive_handle // task handle
-        );
+        // xTaskCreate(
+        //     detect_task,   // function to be run
+        //     "Detecting",   // description of task
+        //     4096,          // bytes allocated to this stack
+        //     NULL,          // parameters, dependent on function
+        //     1,             // priority
+        //     &detect_handle // task handle
+        // );
+        // xTaskCreate(
+        //     drive_task,   // function to be run
+        //     "Driving",    // description of task
+        //     4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
+        //     NULL,         // parameters, dependent on function
+        //     1,            // priority
+        //     &drive_handle // task handle
+        // );
         // Serial.begin(9600);
 
 
-        // xTaskCreate(
-        //     raise_carriage_task,  // Task function
-        //     "Carriage up/down",   // Name
-        //     4096,                 // Stack size
-        //     NULL,                 // Parameters
-        //     3,                    // Priority
-        //     &raise_carriage_handle // Handle
-        // );
-        // xTaskCreate(
-        //     test_raise_carriage_task,  // Task function
-        //     "Test carriage",   // Name
-        //     4096,                 // Stack size
-        //     NULL,                 // Parameters
-        //     3,                    // Priority
-        //     &test_raise_carriage_handle // Handle
-        // );
+        xTaskCreate(
+            raise_carriage_task,  // Task function
+            "Carriage up/down",   // Name
+            4096,                 // Stack size
+            NULL,                 // Parameters
+            3,                    // Priority
+            &raise_carriage_handle // Handle
+        );
+        xTaskCreate(
+            test_raise_carriage_task,  // Task function
+            "Test carriage",   // Name
+            4096,                 // Stack size
+            NULL,                 // Parameters
+            3,                    // Priority
+            &test_raise_carriage_handle // Handle
+        );
         // xTaskCreate(
         //     poll_switch_task,     // Task function
         //     "Poll switches",      // Name
@@ -888,6 +888,7 @@ void loop()
         // Serial.println(rotaryPosition);
         // robot.driveStraight(2000,1);
         // delay(400);
+        
 
     // to be left empty, robot should run in the freeRTOS task scheduler
 }
