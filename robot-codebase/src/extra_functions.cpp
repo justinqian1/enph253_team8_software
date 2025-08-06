@@ -546,3 +546,84 @@
 //         Serial.println("Poll switch task exiting");
 //     }
 // }
+// void IRAM_ATTR startButtonPressedISR()
+// {
+//     BaseType_t hpw = pdFALSE;
+//     vTaskNotifyGiveFromISR(idle_handle, &hpw);
+//     portYIELD_FROM_ISR(&hpw);
+// }
+
+// void IRAM_ATTR encoderRead() {
+//     int mostSignificantBit = digitalRead(rotaryA);
+//     int leastSignificantBit = digitalRead(rotaryB); 
+//     int bitEncodedValue = (mostSignificantBit << 1) | leastSignificantBit;
+//     if (bitEncodedValue != lastEncodedBitValue) {
+//     int bothEncoded = (lastEncodedBitValue  << 2) | bitEncodedValue;
+//     rotaryPosition = rotaryPosition + lookupTable[bothEncoded & 0x0F];
+//     }
+//     lastEncodedBitValue = bitEncodedValue;
+
+//     isrTrigger++;
+// }
+/* 
+    OLD HOMING CODE
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 0);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 3)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    }
+    else if (switchHit == 4)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    }
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 1);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 3)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    }
+    else if (switchHit == 4)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    }
+    stopMotor(clawExtPwmChannelExt,clawExtPwmChannelRet);
+    driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 0);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 1)
+    {
+        stopMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown);
+    }
+    else if (switchHit == 2)
+    {
+        driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 1);
+        xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+        stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
+    }
+    */
+   /**
+ * calculates angle to center of pet. Note that the input image is flipped vertically.
+ * @param pet_x_coord center of pet's x coordinate
+ * @return angle between -31 (pet on very left of frame) to +31 (pet on very right of frame)
+ */
+// double angleToCenter(double petX) {
+//     double result= (petX-(double)imgSize/2)/(double)imgSize*horizontal_fov;
+//     Serial2Pi.printf("Turret off by: %.2lf\n",result);
+//     return result;
+// }
+// void idle_task(void *parameters)
+// {
+//     // initiate idling once homing is finished
+
+//     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+//     // idling until start button is pressed
+
+//     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+//     xTaskNotifyGive(&drive_handle);
+
+//     startTime = millis();
+
+//     vTaskDelete(NULL);
+// }
