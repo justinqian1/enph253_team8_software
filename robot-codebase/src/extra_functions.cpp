@@ -483,3 +483,66 @@
 //     pcnt_counter_clear(PCNT_UNIT);
 //     pcnt_counter_resume(PCNT_UNIT);
 // }
+
+// void raise_carriage_task(void *parameters) {
+//     uint32_t direction; // encodes the direction of motion (1=up,0=down)
+
+//     while (1) {
+//         xTaskNotifyWait(0,0xFFFFFFFF,&direction,portMAX_DELAY); // Wait forever until ISR notifies
+
+//         moveCarriage(direction);
+//         xTaskNotify(poll_switch_handle,direction+1,eSetValueWithOverwrite); // start switch poll
+//         // high switch has id 2, low switch has id 1 hence the direction+1
+
+//         ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait until switch poll finishes
+//         Serial.println("Switch poll finished; raise carriage task exiting");
+//         // stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
+        
+//         //xTaskNotifyGive(test_raise_carriage_handle);
+//     }
+// }
+
+// void test_raise_carriage_task(void *parameters) {
+//     uint32_t dir = 1;
+//     while (1) {
+//         // Send notify to raise_carriage_task to start movement
+//         xTaskNotify(raise_carriage_handle, dir, eSetValueWithOverwrite);
+//         Serial.println("Notified raise_carriage_task");
+
+//         // wait for test to be done
+//         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+//         dir == 1 ? dir = 0 : dir = 1;
+//         Serial.println("Carriage test complete");
+//         Serial.println("carriageHigh: ");
+//         Serial.println(carriageHigh);
+//         vTaskDelay(pdMS_TO_TICKS(500));
+//     }
+// }
+
+// void poll_switch_task(void *parameters) {
+//     uint32_t switchToPoll;
+//     while (1) {
+//         xTaskNotifyWait(0,0,&switchToPoll,portMAX_DELAY);
+//         int count = 0;
+//         // error check
+//         if (switchToPoll < minSwitchID || switchToPoll > maxSwitchID) {
+//             // switchToPoll value invalid
+//             Serial.print("Error: cannot poll switch ");
+//             Serial.println(switchToPoll);
+//             vTaskDelete(NULL);
+//             return;
+//         }
+
+//         // poll switch
+//         Serial.print("Polling switch ");
+//         Serial.println(switchToPoll);
+//         while (!checkSwitchHit(switchToPoll)) {
+//             if (count % (1000/switchPollFrequency) == 0) {
+//                 Serial.println("Still waiting for switch to hit...");
+//             }
+//             count++;
+//             vTaskDelay(pdTICKS_TO_MS(switchPollFrequency));
+//         }
+//         Serial.println("Poll switch task exiting");
+//     }
+// }

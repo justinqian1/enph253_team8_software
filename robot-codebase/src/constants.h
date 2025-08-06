@@ -52,21 +52,21 @@ constexpr int pwmFreq = 500;
 // driving related constants
 constexpr int thresholdL = 1600;
 constexpr int thresholdR = 2800; 
-constexpr int defaultSpeed = 3400;
+constexpr int defaultSpeed = 3000;
 constexpr int maxSpeed = 4095; // set a max pwm output
 constexpr int minSpeed = 1000;    // set a min pwm output
-constexpr int minDriveSpeed = 1600;
+constexpr int minDriveSpeed = 1200;
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
-constexpr int defaultKProp = 900; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 1200;
+constexpr int defaultKProp = 750; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 1000;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
 //thresholds for pick up
-constexpr int angleThreshold=80;
-constexpr int stopDriveThreshold=100;
+constexpr int defaultAngleThreshold=85;
+constexpr int defaultStopDriveThreshold=90;
 constexpr double clawCenterThreshold=5.0; //angle from center
 constexpr double areaThresholdForPickup=3500.0;
 
@@ -89,13 +89,13 @@ constexpr int turretMaxRightPos=350;
 constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
-constexpr int clawExtSpeed=2200;
+constexpr int clawExtSpeed=3000;
 constexpr int carriageDownSpeed = 3500;
 constexpr int carriageUpSpeed = 3500;
 
 // SG90 (claw closing)
-constexpr int clawOpenPos = 165;
-constexpr int clawClosedPos = 45;
+constexpr int clawOpenPos = 40;
+constexpr int clawClosedPos = 165;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
@@ -118,6 +118,11 @@ enum ClawPosition : uint8_t {
     FULL_EXTEND = 2
 };
 constexpr int clawPartRetractTime = 300; // ms
+
+//HARDCODING!!
+constexpr int timeBeforePetDrop = 5000; // ms, time between resuming driving and dropping off first pet
+constexpr int pet1AngleThreshold = 22;
+constexpr int pet1StopDriveThreshold = 27;
 
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;
