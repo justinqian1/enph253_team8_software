@@ -84,7 +84,7 @@ void home();
 
 bool heightsForPickup[6] = {true, true, true, true, true, true}; //false = low, true = high
 bool pickupSide[6] = {false, true, true, true, true, false}; // false = left, true = right
-double petDistToTape[6] = {10.0, 14.0, 14.0, 14.0, 14.0, 14.0}; //distances in inches from tape
+double petDistToTape[6] = {10.0, 10.0, 14.0, 14.0, 14.0, 14.0}; //distances in inches from tape
 
 // TEST PARAMETERS
 
@@ -99,6 +99,7 @@ void resetVars() {
     clawCentered = false;
     anglePastThreshold = false;
     anglePastStopDriveThreshold=false;
+    pickupNext = false;
     speed=defaultSpeed;
 }
 
@@ -348,6 +349,14 @@ bool pollSwitch(uint32_t switch_id) {
     return true; // when switch hits
 }
 
+void clearUART() {
+    while (Serial2Pi.available()) {
+        Serial2Pi.read();  // clears uart input buffer
+    }
+    PetInfo clearPetInfo;
+    while (xQueueReceive(petInfoQueue, &clearPetInfo, 0) == pdTRUE) {} // clears queue
+}
+
 /**
  * Runs the homing sequence for the robot
  */
@@ -382,14 +391,12 @@ void drive_task(void *parameters)
     if (run) {
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
     }
-    // this creates an infinite loop, but it will be interrupted by other actions
-    for (;;)
-    {
+    for (;;) {
         robot->drivePID(speed);
-        // if (millis() - startTime > 90000)
-        // {
-        //     xTaskNotifyGive(&full_turn_handle);
-        // }
+        if (run && millis() - startTime > 90000)
+        {
+            xTaskNotifyGive(&full_turn_handle);
+        }
         vTaskDelay(pdMS_TO_TICKS(1));
     }
 }
@@ -402,6 +409,7 @@ void drive_task(void *parameters)
 void home_task(void *parameters)
 {
     // homing sequence, to be run once at startup and then deleted
+    startTime=millis();
     home();
 
     // start driving and then delete this task as it will not occur again.
@@ -445,7 +453,8 @@ void read_uart_task(void *parameters) {
                     //Serial2Pi.printf("Parsed %d values from line: %s\n", numParsed, line);
 
                     if (numParsed == 3) {
-                        Serial2Pi.printf("ESP received: x=%.2f, area=%.2f, angle from center=%.2f\n", petInfo.petX, petInfo.petArea, petInfo.angleFromCenter);
+                        Serial2Pi.printf("ESP received: x=%.2f, area=%.2f, angle from center=%.2f\n", 
+                            petInfo.petX, petInfo.petArea, petInfo.angleFromCenter);
                         xQueueOverwrite(petInfoQueue, &petInfo);
                     } else {
                         Serial2Pi.printf("Failed to parse line: %s\n", line);
@@ -509,10 +518,10 @@ void detect_task(void *parameters)
             }
 
             if (clawCentered && closeEnough && anglePastThreshold && pickupNext) {
+                vTaskSuspend(read_uart_handle);
                 turretServo->rotateBy((int)(round(petInfo.angleFromCenter)));
                 vTaskDelay(200);
                 Serial2Pi.printf("Initiating pickup!\n");
-                vTaskSuspend(read_uart_handle);
                 // pickUpPet();
 
                 Serial2Pi.printf("Pet picked up!\n");
@@ -521,10 +530,10 @@ void detect_task(void *parameters)
                 vTaskResume(drive_handle);
 
                 pickupNext=false;
-                while (Serial2Pi.available()) {
-                    Serial2Pi.read();  // Clears input buffer to avoid retriggering 
+                clearUART();
+                if(!(run && petsPickedUp==1)) {
+                    vTaskResume(read_uart_handle);
                 }
-                vTaskResume(read_uart_handle);
             } else if (clawCentered && closeEnough && anglePastThreshold) {
                 Serial2Pi.printf("Pickup on next frame\n");
                 pickupNext=true;
@@ -557,17 +566,15 @@ void drop_first_pet_task(void *parameters) {
     vTaskDelay(timeBeforePetDrop);
 
     vTaskSuspend(drive_handle);
-    vTaskSuspend(detect_handle);
-    vTaskSuspend(read_uart_handle);
 
-    turretServo->rotateTo(110);
+    turretServo->rotateTo(90);
     closeClaw(false);
     vTaskDelay(2000);
-    turretServo->rotateTo(135);
+    turretServo->rotateTo(turretPosAfterFirstDrop);
 
-    vTaskResume(drive_handle);
-    vTaskResume(detect_handle);
+    clearUART();
     vTaskResume(read_uart_handle);
+    vTaskResume(drive_handle);
     vTaskDelete(NULL);
 }
 
@@ -611,6 +618,14 @@ void setup()
             NULL,          // parameters, dependent on function
             1,             // priority
             &home_handle // task handle
+        );
+        xTaskCreate(
+            drop_first_pet_task,   // function to be run
+            "Dropping first pet off",   // description of task
+            1000,          // bytes allocated to this stack
+            NULL,          // parameters, dependent on function
+            1,             // priority
+            &drop_first_pet_handle // task handle
         );
     }
     // xTaskCreate(

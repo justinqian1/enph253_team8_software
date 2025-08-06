@@ -121,8 +121,9 @@ constexpr int clawPartRetractTime = 300; // ms
 
 //HARDCODING!!
 constexpr int timeBeforePetDrop = 5000; // ms, time between resuming driving and dropping off first pet
-constexpr int pet1AngleThreshold = 22;
-constexpr int pet1StopDriveThreshold = 27;
+constexpr int pet1AngleThreshold = 22; //degrees
+constexpr int pet1StopDriveThreshold = 27; //degrees
+constexpr int turretPosAfterFirstDrop = 150; //degrees
 
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;
