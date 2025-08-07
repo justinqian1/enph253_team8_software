@@ -681,22 +681,22 @@ void setup()
     //     1,             // priority
     //     &read_uart_handle // task handle
     // // );
-    xTaskCreate(
-        drive_task,   // function to be run
-        "Driving",    // description of task
-        4096*4,         // bytes allocated to this 
-        NULL,         // parameters, dependent on function
-        1,            // priority
-        &drive_handle // task handle
-    );
-    xTaskCreate(
-        full_turn_task,
-        "Turning",
-        4096*2,
-        nullptr,
-        1,
-        &full_turn_handle
-    );
+    // xTaskCreate(
+    //     drive_task,   // function to be run
+    //     "Driving",    // description of task
+    //     4096*4,         // bytes allocated to this 
+    //     NULL,         // parameters, dependent on function
+    //     1,            // priority
+    //     &drive_handle // task handle
+    // );
+    // xTaskCreate(
+    //     full_turn_task,
+    //     "Turning",
+    //     4096*2,
+    //     nullptr,
+    //     1,
+    //     &full_turn_handle
+    // );
 }
 
 void loop()
@@ -711,8 +711,8 @@ void loop()
     // turretServo->rotateTo(360);
     // delay(2000);
     // testRotation();
-    //  pickUpPet();
-    //  delay(3000);
+     pickUpPet();
+     delay(3000);
     // turretServo -> rotateTo(180);
 
     // delay(3000);
