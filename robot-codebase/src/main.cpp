@@ -122,7 +122,6 @@ void moveCarriage(bool up) {
     }
 
     // move carriage
-    // currently commented out bc motor no work
     if (up) {
         carriageMotor->driveForward(carriageUpSpeed);
     } else {
@@ -131,7 +130,7 @@ void moveCarriage(bool up) {
     Serial2Pi.println(up ? "Moving carriage upwards" : "Moving carriage downwards");
     uint32_t switchToPoll;
     up ? switchToPoll = CARRIAGE_HIGH_SWITCH : switchToPoll = CARRIAGE_LOW_SWITCH;
-    pollSwitch(switchToPoll);
+    pollSwitch(switchToPoll); // poll switches, which returns when the switch is hit
 }
 
 void extendClaw (uint8_t position) {
@@ -187,53 +186,57 @@ void closeClaw(bool close) {
  * picks up pet 
  */
 void pickUpPet() {   
+    // get carriage to right height (should be already done though)
     bool targetHeight = heightsForPickup[petsPickedUp];
     if (targetHeight && !carriageHigh) {
         moveCarriage(true);
     } else if (!targetHeight && !carriageLow) {
         moveCarriage(false);
     }
-    extendClaw(FULL_EXTEND);
+
+    extendClaw(FULL_EXTEND); // may hardcode distances for each pet
+    // before this, the claw should be at partial retraction
     delay(20);
-    // receive input from hall effect
     closeClaw(true);
-    delay(2000);
+    delay(2000); //time for the pet to be grabbed
     petsPickedUp++;
     Serial2Pi.printf("Pet picked up!\n");
-    if (run && petsPickedUp==0) {
+
+    if (run && petsPickedUp==0) { // hardcoding for pet #1 on the surface
         moveCarriage(true);
         turretServo->rotateTo(180);
         delay(1000);
         speed=defaultSpeed;
         vTaskResume(drive_handle);
         xTaskNotifyGive(drop_first_pet_handle);
-    } else {
+    } else { // all other cases
         dropPetInBasket(); // START DROP SEQUENCE
     }
 }
 
 void dropPetInBasket() {
-    if (!carriageHigh) {
+    if (!carriageHigh) { // make sure carriage is high
         moveCarriage(true);
     }
     
-    extendClaw(PART_RETRACT); // retract claw
-    int servoRotateDelay;
+    extendClaw(PART_RETRACT); // retract claw partially for dropoff
+
+    int servoRotateTime;
     if (turretServo->getPosition() < turretForwardPos) {
-        servoRotateDelay=1800;
+        servoRotateTime=2500;
     } else {
-        servoRotateDelay = 800;
+        servoRotateTime = 1000;
     }
-    turretServo->rotateTo(turretMaxRightPos); //rotate to max angle
-    delay(servoRotateDelay);
+    turretServo->rotateTo(turretMaxRightPos,servoRotateTime); //rotate to max angle over some amount of time
     closeClaw(false); // open claw
     delay(2000); // give time to drop pet
-    extendClaw(FULL_RETRACT);
-    turretServo->rotateTo(270);
-    extendClaw(PART_RETRACT);
+
+    extendClaw(FULL_RETRACT); // retract after drop
+    turretServo->rotateTo(270); // rotate back to right-facing position
+    extendClaw(PART_RETRACT); // go back to default partial retraction position
     if(petsPickedUp < 6) {
         prepareForNextPickup();
-    } else {
+    } else { // full turn - may change the conditional
         speed=defaultSpeed;
         Serial2Pi.println("Turning around");
         //xTaskNotifyGive(full_turn_handle);
@@ -242,11 +245,12 @@ void dropPetInBasket() {
 
 void prepareForNextPickup() {
     Serial2Pi.println("Preparing for next pickup");
-    pickupSide[petsPickedUp] ? turretServo->rotateTo(turretForwardPos-45) : turretServo->rotateTo(turretForwardPos+45);
+    //pickupSide[petsPickedUp] ? turretServo->rotateTo(turretForwardPos-45) : turretServo->rotateTo(turretForwardPos+45);
+    turretServo->rotateTo(turretForwardPos+30); // face rightwards after pickup
     moveCarriage(heightsForPickup[petsPickedUp]);
     // now claw should be open, carriage should be set for next pickup and rotated properly
     speed=defaultSpeed;
-    // vTaskResume(drive_handle);
+    vTaskResume(drive_handle);
 }
 
 void testRotation() {    
@@ -349,6 +353,10 @@ bool pollSwitch(uint32_t switch_id) {
     return true; // when switch hits
 }
 
+/**
+ * clears uart buffer so info from pictures taken during pickup sequence is discarded
+ * done after pickups
+ */
 void clearUART() {
     while (Serial2Pi.available()) {
         Serial2Pi.read();  // clears uart input buffer
@@ -397,7 +405,7 @@ void drive_task(void *parameters)
         {
             xTaskNotifyGive(&full_turn_handle);
         }
-        vTaskDelay(pdMS_TO_TICKS(1));
+        vTaskDelay(pdMS_TO_TICKS(2));
     }
 }
 
@@ -520,7 +528,7 @@ void detect_task(void *parameters)
             if (clawCentered && closeEnough && anglePastThreshold && pickupNext) {
                 vTaskSuspend(read_uart_handle);
                 turretServo->rotateBy((int)(round(petInfo.angleFromCenter)));
-                vTaskDelay(200);
+                vTaskDelay(400);
                 Serial2Pi.printf("Initiating pickup!\n");
                 // pickUpPet();
 
@@ -534,14 +542,10 @@ void detect_task(void *parameters)
                 if(!(run && petsPickedUp==1)) {
                     vTaskResume(read_uart_handle);
                 }
-            } else if (clawCentered && closeEnough && anglePastThreshold) {
+            } else if ((clawCentered && closeEnough && anglePastThreshold) ||
+                        (closeEnough && anglePastStopDriveThreshold)) {
                 Serial2Pi.printf("Pickup on next frame\n");
                 pickupNext=true;
-                robot->stop();
-                vTaskSuspend(drive_handle);
-            } else if (closeEnough && anglePastStopDriveThreshold) {
-                turretServo->rotateBy((int)(round(petInfo.angleFromCenter)));
-                Serial2Pi.printf("Stopping drive\n");
                 robot->stop();
                 vTaskSuspend(drive_handle);
             } else {
@@ -652,6 +656,7 @@ void setup()
     //     1,            // priority
     //     &drive_handle // task handle
     // );
+    // Serial.begin(9600);
 }
 
 void loop()
@@ -663,11 +668,11 @@ void loop()
     // home();
     // turretServo->rotateTo(180);
     // delay(2000);
-    // turretServo->rotateTo(330);
+    // turretServo->rotateTo(360);
     // delay(2000);
     // testRotation();
-    // pickUpPet();
-    // delay(4000);
+    pickUpPet();
+    delay(4000);
     // if(petsPickedUp > 5) {
     //     petsPickedUp=0;
     // }

@@ -37,8 +37,8 @@ constexpr int basketSwitch = 25;
 constexpr int RXPin = 3; // I'm moving some pins around just for code simplicity but these can change later <-- NEED TO BE CHANGED, NOT IDEAL FOR UART
 constexpr int TXPin = 1; // same as above
 constexpr int startSwitch = 39;
-constexpr int carriageLOW = 26; // not connected??
-constexpr int carriageHIGH = 33; // hits both low and high
+constexpr int carriageLOW = 33; 
+constexpr int carriageHIGH = 26; 
 constexpr int clawExtendedSwitch = 25;
 constexpr int clawRetractedSwitch = 32;
 
@@ -50,17 +50,17 @@ constexpr int rotaryB = 38;
 constexpr int pwmFreq = 500;
 
 // driving related constants
-constexpr int thresholdL = 1600;
+constexpr int thresholdL = 3300;
 constexpr int thresholdR = 2800; 
-constexpr int defaultSpeed = 3000;
+constexpr int defaultSpeed = 2400;
 constexpr int maxSpeed = 4095; // set a max pwm output
 constexpr int minSpeed = 1000;    // set a min pwm output
 constexpr int minDriveSpeed = 1200;
 constexpr int homeSpeed = 600; // set a motor speed for the homing sequence
 
 // for driving
-constexpr int defaultKProp = 750; // kp and kd for driving pid control
-constexpr int defaultKDeriv = 1000;
+constexpr int defaultKProp = 600; // kp and kd for driving pid control
+constexpr int defaultKDeriv = 900;
 constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
@@ -83,7 +83,7 @@ constexpr int servoMaxDuty = 2500;
 constexpr double MG996RMultiplier = 2.0;
 constexpr int turretForwardPos=180;
 constexpr int turretMaxLeftPos=0;
-constexpr int turretMaxRightPos=350;
+constexpr int turretMaxRightPos=340;
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;
@@ -95,7 +95,7 @@ constexpr int carriageUpSpeed = 3500;
 
 // SG90 (claw closing)
 constexpr int clawOpenPos = 40;
-constexpr int clawClosedPos = 165;
+constexpr int clawClosedPos = 180;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
@@ -117,7 +117,7 @@ enum ClawPosition : uint8_t {
     PART_RETRACT = 1,
     FULL_EXTEND = 2
 };
-constexpr int clawPartRetractTime = 300; // ms
+constexpr int clawPartRetractTime = 230; // ms
 
 //HARDCODING!!
 constexpr int timeBeforePetDrop = 5000; // ms, time between resuming driving and dropping off first pet
