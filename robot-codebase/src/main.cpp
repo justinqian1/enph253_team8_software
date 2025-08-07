@@ -382,7 +382,7 @@ void home()
 // freeRTOS tasks
 
 /**
- * this task operates the main driving system of the robot, including PID control. It also includes a hard-coded stop c
+ * this task operates the main driving system of the robot, including PID control. It also includes a hard-coded stop 
  * condition if the time reaches 90 seconds, at which point it signals the full_turn task to execute at max priority.
  * @param parameters no parameters for this task
  */
@@ -578,15 +578,19 @@ void drop_first_pet_task(void *parameters) {
     vTaskDelete(NULL);
 }
 
-void full_turn_test(void *parameters) {
+void full_turn_task(void *parameters) {
+    vTaskSuspend(&drive_handle);
+
+    robot -> driveLeftMotor(4095,0);
+    robot -> driveRightMotor(4095,1);
+    vTaskDelay(1000);
+
     for(;;) {
-        robot -> driveLeftMotor(4095,0);
-        robot -> driveRightMotor(4095,1);
-        vTaskDelay(1000);
-        if (leftIRSensor->read() < thresholdL && rightIRSensor->read() < thresholdR)  {
+        if (leftIRSensor->read() > thresholdL && rightIRSensor->read() > thresholdR)  {
             robot -> stop();
+            break;
         }
-        vTaskDelay(4000);
+        vTaskDelay(pdMS_TO_TICKS(2));
     }
 }
 
@@ -644,14 +648,22 @@ void setup()
     //     1,             // priority
     //     &read_uart_handle // task handle
     // );
-    // xTaskCreate(
-    //     drive_task,   // function to be run
-    //     "Driving",    // description of task
-    //     4096,         // bytes allocated to this ib_deps = madhephaestus/ESP32Servo@^3.0.8stack
-    //     NULL,         // parameters, dependent on function
-    //     1,            // priority
-    //     &drive_handle // task handle
-    // );
+    xTaskCreate(
+        drive_task,   // function to be run
+        "Driving",    // description of task
+        4096,         // bytes allocated to this 
+        NULL,         // parameters, dependent on function
+        1,            // priority
+        &drive_handle // task handle
+    );
+    xTaskCreate(
+        full_turn_task,
+        "Turning",
+        4096,
+        nullptr,
+        6,
+        &full_turn_handle
+    );
 }
 
 void loop()
