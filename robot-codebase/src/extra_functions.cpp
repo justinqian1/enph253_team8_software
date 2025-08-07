@@ -483,3 +483,147 @@
 //     pcnt_counter_clear(PCNT_UNIT);
 //     pcnt_counter_resume(PCNT_UNIT);
 // }
+
+// void raise_carriage_task(void *parameters) {
+//     uint32_t direction; // encodes the direction of motion (1=up,0=down)
+
+//     while (1) {
+//         xTaskNotifyWait(0,0xFFFFFFFF,&direction,portMAX_DELAY); // Wait forever until ISR notifies
+
+//         moveCarriage(direction);
+//         xTaskNotify(poll_switch_handle,direction+1,eSetValueWithOverwrite); // start switch poll
+//         // high switch has id 2, low switch has id 1 hence the direction+1
+
+//         ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait until switch poll finishes
+//         Serial.println("Switch poll finished; raise carriage task exiting");
+//         // stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
+        
+//         //xTaskNotifyGive(test_raise_carriage_handle);
+//     }
+// }
+
+// void test_raise_carriage_task(void *parameters) {
+//     uint32_t dir = 1;
+//     while (1) {
+//         // Send notify to raise_carriage_task to start movement
+//         xTaskNotify(raise_carriage_handle, dir, eSetValueWithOverwrite);
+//         Serial.println("Notified raise_carriage_task");
+
+//         // wait for test to be done
+//         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+//         dir == 1 ? dir = 0 : dir = 1;
+//         Serial.println("Carriage test complete");
+//         Serial.println("carriageHigh: ");
+//         Serial.println(carriageHigh);
+//         vTaskDelay(pdMS_TO_TICKS(500));
+//     }
+// }
+
+// void poll_switch_task(void *parameters) {
+//     uint32_t switchToPoll;
+//     while (1) {
+//         xTaskNotifyWait(0,0,&switchToPoll,portMAX_DELAY);
+//         int count = 0;
+//         // error check
+//         if (switchToPoll < minSwitchID || switchToPoll > maxSwitchID) {
+//             // switchToPoll value invalid
+//             Serial.print("Error: cannot poll switch ");
+//             Serial.println(switchToPoll);
+//             vTaskDelete(NULL);
+//             return;
+//         }
+
+//         // poll switch
+//         Serial.print("Polling switch ");
+//         Serial.println(switchToPoll);
+//         while (!checkSwitchHit(switchToPoll)) {
+//             if (count % (1000/switchPollFrequency) == 0) {
+//                 Serial.println("Still waiting for switch to hit...");
+//             }
+//             count++;
+//             vTaskDelay(pdTICKS_TO_MS(switchPollFrequency));
+//         }
+//         Serial.println("Poll switch task exiting");
+//     }
+// }
+// void IRAM_ATTR startButtonPressedISR()
+// {
+//     BaseType_t hpw = pdFALSE;
+//     vTaskNotifyGiveFromISR(idle_handle, &hpw);
+//     portYIELD_FROM_ISR(&hpw);
+// }
+
+// void IRAM_ATTR encoderRead() {
+//     int mostSignificantBit = digitalRead(rotaryA);
+//     int leastSignificantBit = digitalRead(rotaryB); 
+//     int bitEncodedValue = (mostSignificantBit << 1) | leastSignificantBit;
+//     if (bitEncodedValue != lastEncodedBitValue) {
+//     int bothEncoded = (lastEncodedBitValue  << 2) | bitEncodedValue;
+//     rotaryPosition = rotaryPosition + lookupTable[bothEncoded & 0x0F];
+//     }
+//     lastEncodedBitValue = bitEncodedValue;
+
+//     isrTrigger++;
+// }
+/* 
+    OLD HOMING CODE
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 0);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 3)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    }
+    else if (switchHit == 4)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    }
+    driveAndreMotor(clawExtPwmChannelExt, clawExtPwmChannelRet, homeSpeed, 1);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 3)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMin);
+    }
+    else if (switchHit == 4)
+    {
+        pcnt_get_counter_value(PCNT_UNIT, &rotaryMax);
+    }
+    stopMotor(clawExtPwmChannelExt,clawExtPwmChannelRet);
+    driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 0);
+    xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+    if (switchHit == 1)
+    {
+        stopMotor(carriageHeightPwmChannelUp,carriageHeightPwmChannelDown);
+    }
+    else if (switchHit == 2)
+    {
+        driveAndreMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown, homeSpeed, 1);
+        xTaskNotifyWait(0, 0xFFFFFFFF, &switchHit, portMAX_DELAY);
+        stopMotor(carriageHeightPwmChannelUp, carriageHeightPwmChannelDown);
+    }
+    */
+   /**
+ * calculates angle to center of pet. Note that the input image is flipped vertically.
+ * @param pet_x_coord center of pet's x coordinate
+ * @return angle between -31 (pet on very left of frame) to +31 (pet on very right of frame)
+ */
+// double angleToCenter(double petX) {
+//     double result= (petX-(double)imgSize/2)/(double)imgSize*horizontal_fov;
+//     Serial2Pi.printf("Turret off by: %.2lf\n",result);
+//     return result;
+// }
+// void idle_task(void *parameters)
+// {
+//     // initiate idling once homing is finished
+
+//     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+//     // idling until start button is pressed
+
+//     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+//     xTaskNotifyGive(&drive_handle);
+
+//     startTime = millis();
+
+//     vTaskDelete(NULL);
+// }

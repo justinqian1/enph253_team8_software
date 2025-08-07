@@ -51,18 +51,19 @@ void RobotWheels::drivePID(int speed, int kp,
 
     leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), 1);
     rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), 1);
-#ifdef ROBOT_DEBUG
-    leftReading = leftIRSensor.read();
-    rightReading = rightIRSensor.read();
-    Serial.print("Left reading");
-    Serial.println(leftReading);
-    Serial.print("Right reading:");
-    Serial.println(rightReading);
-    Serial.print("Left speed:");
-    Serial.println(constrain(speed - ctrl, minSpeed, maxSpeed));
-    Serial.print("Right speed:");
-    Serial.println(constrain(speed + ctrl, minSpeed, maxSpeed));
-#endif 
+// #ifdef ROBOT_DEBUG
+    // leftReading = leftIRSensor.read();
+    // rightReading = rightIRSensor.read();
+    // Serial.print("Left reading");
+    // Serial.println(leftReading);
+    // Serial.print("Right reading:");
+    // Serial.println(rightReading);
+    // Serial.println(_distance);
+    // Serial.print("Left speed:");
+    // Serial.println(constrain(speed - ctrl, minSpeed, maxSpeed));
+    // Serial.print("Right speed:");
+    // Serial.println(constrain(speed + ctrl, minSpeed, maxSpeed));
+// #endif 
 }
 
 void RobotWheels::stop() {
