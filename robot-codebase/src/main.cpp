@@ -585,23 +585,25 @@ void drop_first_pet_task(void *parameters) {
 }
 
 void full_turn_task(void *parameters) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-    vTaskSuspend(&drive_handle);
-
-    robot -> driveLeftMotor(4095,0);
-    robot -> driveRightMotor(4095,1);
-    vTaskDelay(1000);
-
     for(;;) {
-        if (leftIRSensor->read() > thresholdL && rightIRSensor->read() > thresholdR)  {
-            robot -> stop();
-            break;
-        }
-        vTaskDelay(pdMS_TO_TICKS(2));
-    }
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    vTaskResume(&drive_handle);
+        vTaskSuspend(&drive_handle);
+
+        robot -> driveLeftMotor(4095,0);
+        robot -> driveRightMotor(4095,1);
+        vTaskDelay(1000);
+
+        for(;;) {
+            if (leftIRSensor->read() > thresholdL && rightIRSensor->read() > thresholdR)  {
+                robot -> stop();
+                break;
+            }
+            vTaskDelay(pdMS_TO_TICKS(2));
+        }
+
+        vTaskResume(&drive_handle);
+    }
 }
 
 void setup()
