@@ -21,7 +21,7 @@ TaskHandle_t drop_first_pet_handle = nullptr;
 
 
 // TRUE IF RUNNING ON COMP SURFACE, FALSE IF TESTING
-bool run = false;
+bool run = true;
 
 // initialize serial port for Pi communication
 HardwareSerial Serial2Pi(0); // for UART 0
@@ -258,8 +258,8 @@ void dropPetInBasket() {
 
     extendClaw(FULL_RETRACT); // retract after drop
     turretServo->rotateTo(turretForwardPos+90); // rotate back to right-facing position
-    extendClaw(DEFAULT_RETRACT); // go back to default partial retraction position
     if(!run) {
+        extendClaw(DEFAULT_RETRACT); // go back to default partial retraction position
         prepareForNextPickup();
     } else { // full turn after second pickup
         speed=defaultSpeed;
@@ -464,6 +464,7 @@ void read_uart_task(void *parameters) {
     int lineIdx=0;
     if(run) {
         ulTaskNotifyTake(pdTRUE,portMAX_DELAY);
+        Serial2Pi.printf("Read UART task started\n");
     }
     while (1) {
         while (Serial2Pi.available()) {
@@ -696,30 +697,30 @@ void setup()
         );
 
     }
-    // xTaskCreate(
-    //     detect_task,   // function to be run
-    //     "Detecting",   // description of task
-    //     4096,          // bytes allocated to this stack
-    //     NULL,          // parameters, dependent on function
-    //     1,             // priority
-    //     &detect_handle // task handle
-    // );
-    // xTaskCreate(
-    //     read_uart_task,   // function to be run
-    //     "Read UART",   // description of task
-    //     4096,          // bytes allocated to this stack
-    //     NULL,          // parameters, dependent on function
-    //     1,             // priority
-    //     &read_uart_handle // task handle
-    // );
-    // xTaskCreate(
-    //     drive_task,   // function to be run
-    //     "Driving",    // description of task
-    //     4096,         // bytes allocated to this 
-    //     NULL,         // parameters, dependent on function
-    //     1,            // priority
-    //     &drive_handle // task handle
-    // );
+    xTaskCreate(
+        detect_task,   // function to be run
+        "Detecting",   // description of task
+        4096,          // bytes allocated to this stack
+        NULL,          // parameters, dependent on function
+        1,             // priority
+        &detect_handle // task handle
+    );
+    xTaskCreate(
+        read_uart_task,   // function to be run
+        "Read UART",   // description of task
+        4096,          // bytes allocated to this stack
+        NULL,          // parameters, dependent on function
+        1,             // priority
+        &read_uart_handle // task handle
+    );
+    xTaskCreate(
+        drive_task,   // function to be run
+        "Driving",    // description of task
+        4096,         // bytes allocated to this 
+        NULL,         // parameters, dependent on function
+        1,            // priority
+        &drive_handle // task handle
+    );
 }
 
 void loop()
@@ -754,10 +755,10 @@ void loop()
     // Serial.println(carriageHigh);
     // delay(1000);
 
-    closeClaw(true);
-    delay(2000); 
-    closeClaw(false);
-    delay(2000);
+    // closeClaw(true);
+    // delay(2000); 
+    // closeClaw(false);
+    // delay(2000);
 
     // extendClaw(FULL_EXTEND);
     // delay(2000);
