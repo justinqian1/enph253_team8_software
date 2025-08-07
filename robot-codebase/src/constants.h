@@ -51,7 +51,7 @@ constexpr int pwmFreq = 500;
 
 // driving related constants
 constexpr int thresholdL = 3300;
-constexpr int thresholdR = 2800; 
+constexpr int thresholdR = 3300; 
 constexpr int defaultSpeed = 2400;
 constexpr int maxSpeed = 4095; // set a max pwm output
 constexpr int minSpeed = 1000;    // set a min pwm output
@@ -79,11 +79,11 @@ constexpr int maxLineLength=40;
 // turret/servo setup
 constexpr int servoFreq = 50;
 constexpr int servoMinDuty = 500;
-constexpr int servoMaxDuty = 2500;
+constexpr int servoMaxDuty = 2400;
 constexpr double MG996RMultiplier = 2.0;
-constexpr int turretForwardPos=180;
+constexpr int turretForwardPos=160;
 constexpr int turretMaxLeftPos=0;
-constexpr int turretMaxRightPos=340;
+constexpr int turretMaxRightPos=360;
 
 // limit switch related
 constexpr int limitSwitchActiveThreshold = 2048;
@@ -94,7 +94,7 @@ constexpr int carriageDownSpeed = 3500;
 constexpr int carriageUpSpeed = 3500;
 
 // SG90 (claw closing)
-constexpr int clawOpenPos = 40;
+constexpr int clawOpenPos = 50;
 constexpr int clawClosedPos = 180;
 
 // misc consexpr

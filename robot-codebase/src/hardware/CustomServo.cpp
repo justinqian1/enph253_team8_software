@@ -63,7 +63,7 @@ void CustomServo::rotateTo(int position)
 void CustomServo::rotateTo(int position, int time)
 {
     int numTicks = abs(this->servoPosition - position);
-    int tickTime = time / numTicks;
+    double tickTime = time / numTicks;
     if (this->servoPosition < position)
     {
         while (this->servoPosition < position)

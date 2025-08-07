@@ -205,7 +205,7 @@ void pickUpPet() {
     if (run && petsPickedUp==0) { // hardcoding for pet #1 on the surface
         moveCarriage(true);
         turretServo->rotateTo(180);
-        delay(1000);
+        delay(2000);
         speed=defaultSpeed;
         vTaskResume(drive_handle);
         xTaskNotifyGive(drop_first_pet_handle);
@@ -227,9 +227,11 @@ void dropPetInBasket() {
     } else {
         servoRotateTime = 1000;
     }
-    turretServo->rotateTo(turretMaxRightPos,servoRotateTime); //rotate to max angle over some amount of time
+    //turretServo->rotateTo(360,servoRotateTime); //rotate to max angle over some amount of time
+    turretServo->rotateTo(360);
+    delay(4000);
     closeClaw(false); // open claw
-    delay(2000); // give time to drop pet
+    delay(4000); // give time to drop pet
 
     extendClaw(FULL_RETRACT); // retract after drop
     turretServo->rotateTo(270); // rotate back to right-facing position
@@ -246,11 +248,11 @@ void dropPetInBasket() {
 void prepareForNextPickup() {
     Serial2Pi.println("Preparing for next pickup");
     //pickupSide[petsPickedUp] ? turretServo->rotateTo(turretForwardPos-45) : turretServo->rotateTo(turretForwardPos+45);
-    turretServo->rotateTo(turretForwardPos+30); // face rightwards after pickup
+    turretServo->rotateTo(turretForwardPos); // face rightwards after pickup
     moveCarriage(heightsForPickup[petsPickedUp]);
     // now claw should be open, carriage should be set for next pickup and rotated properly
     speed=defaultSpeed;
-    vTaskResume(drive_handle);
+    //vTaskResume(drive_handle);
 }
 
 void testRotation() {    
@@ -401,15 +403,35 @@ void drive_task(void *parameters)
     }
     for (;;) {
         robot->drivePID(speed);
-        if (/*run && */millis() - startTime > 7000)
+        if (/*run && */millis() - startTime > 5000)
         {
+            xTaskNotifyGive(full_turn_handle);
+            Serial.println("WAITING FOR NOTIF");
+            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             startTime = millis();
-            xTaskNotifyGive(&full_turn_handle);
-
+            Serial.println("RECEIVED NOTIF");
         }
         vTaskDelay(pdMS_TO_TICKS(2));
     }
 }
+
+/**
+ * drop off first pet
+ */
+
+ void drop_off_first_pet_task(void* parameters) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+    vTaskDelay(4000);
+    // rotate to over the ramp
+    turretServo->rotateTo(45);
+    vTaskDelay(1000);
+    clawCloseServo->rotateTo(clawOpenPos);
+
+    xTaskNotifyGive(&drive_handle);
+    //vTaskDelete();
+
+ }
 
 /**
  * this is a one-time task that activates the homing sequence, after which it puts the robot in idle mode. It also
@@ -586,33 +608,32 @@ void drop_first_pet_task(void *parameters) {
 
 void full_turn_task(void *parameters) {
     for(;;) {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-        vTaskSuspend(&drive_handle);
-
-        robot -> driveLeftMotor(4095,0);
-        robot -> driveRightMotor(4095,1);
-        vTaskDelay(1000);
+        robot -> driveLeftMotor(1500,0);
+        robot -> driveRightMotor(1500,1);
+        vTaskDelay(2000);
 
         for(;;) {
-            if (leftIRSensor->read() > thresholdL && rightIRSensor->read() > thresholdR)  {
-                robot -> stop();
+            if (rightIRSensor->read() > thresholdR)  {
                 break;
             }
-            vTaskDelay(pdMS_TO_TICKS(2));
-        }
+            //Serial.println("Waiting for turn");
 
-        vTaskResume(&drive_handle);
+            vTaskDelay(pdMS_TO_TICKS(1));
+        }   
+        //Serial.println("Going to turn");
+        xTaskNotifyGive(drive_handle);
     }
-}
+    }
 
 void setup()
 {
-    // serial
-    Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
-    Serial2Pi.write("Hello from the ESP32!");
-    petInfoQueue = xQueueCreate(1, sizeof(PetInfo));
-
+    // serial++++++++++++++++++++++++++
+    // Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
+    // Serial2Pi.write("Hello from the ESP32!");
+    // petInfoQueue = xQueueCreate(1, sizeof(PetInfo));
+    Serial.begin(9600);
     // motor/servo setup
     rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
     leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
@@ -659,11 +680,11 @@ void setup()
     //     NULL,          // parameters, dependent on function
     //     1,             // priority
     //     &read_uart_handle // task handle
-    // );
+    // // );
     xTaskCreate(
         drive_task,   // function to be run
         "Driving",    // description of task
-        4096,         // bytes allocated to this 
+        4096*4,         // bytes allocated to this 
         NULL,         // parameters, dependent on function
         1,            // priority
         &drive_handle // task handle
@@ -671,9 +692,9 @@ void setup()
     xTaskCreate(
         full_turn_task,
         "Turning",
-        4096,
+        4096*2,
         nullptr,
-        6,
+        1,
         &full_turn_handle
     );
 }
@@ -690,8 +711,17 @@ void loop()
     // turretServo->rotateTo(360);
     // delay(2000);
     // testRotation();
-    // pickUpPet();
-    // delay(4000);
+    //  pickUpPet();
+    //  delay(3000);
+    // turretServo -> rotateTo(180);
+
+    // delay(3000);
+    // turretServo -> rotateTo(360);
+
+    // delay(3000);
+    // turretServo -> rotateTo(270);
+
+    //  delay(3000);
     // if(petsPickedUp > 5) {
     //     petsPickedUp=0;
     // }

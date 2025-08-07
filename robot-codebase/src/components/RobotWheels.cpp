@@ -52,9 +52,9 @@ void RobotWheels::drivePID(int speed, int kp,
     leftMotor.driveMotor(constrain(speed - ctrl, minSpeed, maxSpeed), 1);
     rightMotor.driveMotor(constrain(speed + ctrl, minSpeed, maxSpeed), 1);
 // #ifdef ROBOT_DEBUG
-    // leftReading = leftIRSensor.read();
-    // rightReading = rightIRSensor.read();
-    // Serial.printf("Left reading %d Right reading %d Error %d\n",leftReading,rightReading,_distance);
+    leftReading = leftIRSensor.read();
+    rightReading = rightIRSensor.read();
+    Serial.printf("Left reading %d Right reading %d Error %d\n",leftReading,rightReading,_distance);
     // Serial.println(leftReading);
     // Serial.print("Right reading:");
     // Serial.print("Left speed:");
