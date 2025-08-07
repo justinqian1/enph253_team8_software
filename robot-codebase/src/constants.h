@@ -51,7 +51,7 @@ constexpr int pwmFreq = 500;
 
 // driving related constants
 constexpr int thresholdL = 3300;
-constexpr int thresholdR = 3300; 
+constexpr int thresholdR = 3500; 
 constexpr int defaultSpeed = 2400;
 constexpr int maxSpeed = 4095; // set a max pwm output
 constexpr int minSpeed = 1000;    // set a min pwm output
@@ -65,10 +65,10 @@ constexpr int dir1 = 0;
 constexpr int dir2 = 1;
 
 //thresholds for pick up
-constexpr int defaultAngleThreshold=85;
-constexpr int defaultStopDriveThreshold=90;
+constexpr int defaultAngleThreshold=90;
+constexpr int defaultStopDriveThreshold=95;
 constexpr double clawCenterThreshold=5.0; //angle from center
-constexpr double areaThresholdForPickup=3500.0;
+constexpr double areaThresholdForPickup=2000.0;
 
 // misc cv params
 constexpr int imgSize=320;
@@ -82,7 +82,7 @@ constexpr int servoMinDuty = 500;
 constexpr int servoMaxDuty = 2400;
 constexpr double MG996RMultiplier = 2.0;
 constexpr int turretForwardPos=160;
-constexpr int turretMaxLeftPos=0;
+constexpr int turretMaxLeftPos=turretForwardPos-55;
 constexpr int turretMaxRightPos=360;
 
 // limit switch related
@@ -94,8 +94,8 @@ constexpr int carriageDownSpeed = 3500;
 constexpr int carriageUpSpeed = 3500;
 
 // SG90 (claw closing)
-constexpr int clawOpenPos = 50;
-constexpr int clawClosedPos = 180;
+constexpr int clawOpenPos = 0;
+constexpr int clawClosedPos = 75;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;
@@ -114,16 +114,19 @@ constexpr int switchPollFrequency = 20;
 
 enum ClawPosition : uint8_t {
     FULL_RETRACT = 0,
-    PART_RETRACT = 1,
-    FULL_EXTEND = 2
+    DROPOFF_RETRACT = 1,
+    DEFAULT_RETRACT = 2,
+    FULL_EXTEND = 3
 };
-constexpr int clawPartRetractTime = 230; // ms
+constexpr int clawDefaultRetractTime = 240; // ms
+constexpr int clawDropoffRetractTime = 300; // ms
 
 //HARDCODING!!
 constexpr int timeBeforePetDrop = 5000; // ms, time between resuming driving and dropping off first pet
-constexpr int pet1AngleThreshold = 22; //degrees
-constexpr int pet1StopDriveThreshold = 27; //degrees
-constexpr int turretPosAfterFirstDrop = 150; //degrees
+constexpr int pet1AngleThreshold = 28; //degrees; actual = 27.7
+constexpr int pet1StopDriveThreshold = 33; //degrees
+constexpr int turretPosAfterFirstDrop = turretForwardPos-15; //degrees
+constexpr int defaultSpeed2 = 2000;
 
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;
