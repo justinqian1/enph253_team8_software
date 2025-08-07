@@ -95,7 +95,7 @@ constexpr int carriageUpSpeed = 3500;
 
 // SG90 (claw closing)
 constexpr int clawOpenPos = 0;
-constexpr int clawClosedPos = 75;
+constexpr int clawClosedPos = 88;
 
 // misc consexpr
 constexpr pcnt_unit_t PCNT_UNIT = PCNT_UNIT_0;

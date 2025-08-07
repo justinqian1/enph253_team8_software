@@ -612,11 +612,14 @@ void drop_first_pet_task(void *parameters) {
 
     vTaskSuspend(drive_handle);
 
+    extendClaw(FULL_EXTEND);
     turretServo->rotateTo(turretMaxLeftPos);
     vTaskDelay(pdMS_TO_TICKS(1000));
     closeClaw(false);
     vTaskDelay(pdMS_TO_TICKS(2000));
     turretServo->rotateTo(turretPosAfterFirstDrop);
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    extendClaw(DEFAULT_RETRACT);
 
     clearUART();
     vTaskResume(read_uart_handle);
