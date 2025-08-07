@@ -89,7 +89,7 @@ constexpr int turretMaxRightPos=340;
 constexpr int limitSwitchActiveThreshold = 2048;
 
 // extra motor speeds
-constexpr int clawExtSpeed=3000;
+constexpr int clawExtSpeed=2400;
 constexpr int carriageDownSpeed = 3500;
 constexpr int carriageUpSpeed = 3500;
 
