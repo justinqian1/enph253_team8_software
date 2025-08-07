@@ -31,6 +31,7 @@ volatile int speed = defaultSpeed;    // average speed
 int petsPickedUp = 0;
 bool rotationTested=false; // for testing
 volatile bool pickupNext=false;
+int startDriveBackTime;
 
 volatile bool carriageHigh = false;
 volatile bool carriageLow = false;
@@ -263,6 +264,8 @@ void dropPetInBasket() {
     } else { // full turn after second pickup
         speed=defaultSpeed;
         Serial2Pi.println("Turning around");
+        turretServo->rotateTo(turretForwardPos);
+        vTaskDelay(pdMS_TO_TICKS(500));
         xTaskNotifyGive(&full_turn_handle);
     }
 }
@@ -421,13 +424,16 @@ void drive_task(void *parameters)
     }
     for (;;) {
         robot->drivePID(speed);
-        if (run && millis() - startTime > 5000)
-        {
-            // xTaskNotifyGive(full_turn_handle);
-            // Serial.println("WAITING FOR NOTIF");
-            // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-            startTime = millis();
-            // Serial.println("RECEIVED NOTIF");
+        // if (run && millis() - startTime > 5000)
+        // {
+        //     // xTaskNotifyGive(full_turn_handle);
+        //     // Serial.println("WAITING FOR NOTIF");
+        //     // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        //     startTime = millis();
+        //     // Serial.println("RECEIVED NOTIF");
+        // }
+        if (run && millis() - startDriveBackTime > driveBackTime) {
+            vTaskDelete(NULL);
         }
         vTaskDelay(pdMS_TO_TICKS(2));
     }
@@ -635,7 +641,8 @@ void full_turn_task(void *parameters) {
             vTaskDelay(pdMS_TO_TICKS(1));
         }   
         //Serial.println("Going to turn");
-        xTaskNotifyGive(drive_handle);
+        startDriveBackTime = millis();
+        vTaskResume(drive_handle);
     }
     }
 

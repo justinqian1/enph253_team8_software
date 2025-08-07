@@ -127,6 +127,7 @@ constexpr int pet1AngleThreshold = 28; //degrees; actual = 27.7
 constexpr int pet1StopDriveThreshold = 33; //degrees
 constexpr int turretPosAfterFirstDrop = turretForwardPos-15; //degrees
 constexpr int defaultSpeed2 = 2000;
+constexpr int driveBackTime = 15000;
 
 // hall sensor 
 constexpr double hallVoltageRef = 3.3;
