@@ -10,8 +10,6 @@
 #include "components/RobotWheels.h"
 #include "tasks.h"
 
-// TRUE IF RUNNING ON COMP SURFACE, FALSE IF TESTING
-bool run = false;
 // global variables and task handles
 
 TaskHandle_t drive_handle = nullptr;
@@ -21,8 +19,11 @@ TaskHandle_t detect_handle = nullptr;
 TaskHandle_t read_uart_handle = nullptr;
 TaskHandle_t drop_first_pet_handle = nullptr;
 
-// initialize serial port for Pi communication
 
+// TRUE IF RUNNING ON COMP SURFACE, FALSE IF TESTING
+bool run = true;
+
+// initialize serial port for Pi communication
 HardwareSerial Serial2Pi(0); // for UART 0
 
 // robot properties/location
@@ -34,7 +35,8 @@ volatile bool pickupNext=false;
 volatile bool carriageHigh = false;
 volatile bool carriageLow = false;
 volatile bool clawFullyExtended = false;
-volatile bool clawPartRetracted = false;
+volatile bool clawDefaultRetracted = false;
+volatile bool clawDropoffRetracted = false;
 volatile bool clawFullyRetracted = false;
 
 //booleans for pick up
@@ -82,9 +84,7 @@ bool checkSwitchHit(uint32_t switch_id);
 bool pollSwitch(uint32_t switch_id);
 void home();
 
-bool heightsForPickup[6] = {true, true, true, true, true, true}; //false = low, true = high
-bool pickupSide[6] = {false, true, true, true, true, false}; // false = left, true = right
-double petDistToTape[6] = {10.0, 10.0, 14.0, 14.0, 14.0, 14.0}; //distances in inches from tape
+bool heightsForPickup[6] = {false,false,false,false,false,false}; //false = low, true = high
 
 // TEST PARAMETERS
 
@@ -136,7 +136,8 @@ void moveCarriage(bool up) {
 void extendClaw (uint8_t position) {
     // if already moved to target position
     if (position == FULL_EXTEND && clawFullyExtended ||
-        position == PART_RETRACT && clawPartRetracted ||
+        position == DEFAULT_RETRACT && clawDefaultRetracted ||
+        position == DROPOFF_RETRACT && clawDropoffRetracted ||
         position == FULL_RETRACT && clawFullyRetracted) {
         return;
     }
@@ -146,39 +147,57 @@ void extendClaw (uint8_t position) {
         case FULL_EXTEND:
             Serial2Pi.println("Claw extending");
             clawFullyRetracted = false;
-            clawPartRetracted = false;
+            clawDefaultRetracted = false;
+            clawDropoffRetracted = false;
             clawExtMotor->driveForward(clawExtSpeed);
             pollSwitch(CLAW_EXT_SWITCH);
             break;
         case FULL_RETRACT:
             Serial2Pi.println("Claw retracting");
             clawFullyExtended = false;
-            clawPartRetracted = false;
+            clawDefaultRetracted = false;
+            clawDropoffRetracted = false;
             clawExtMotor->driveReverse(clawExtSpeed);
             pollSwitch(CLAW_RET_SWITCH);
             break;
-        case PART_RETRACT:
+        case DEFAULT_RETRACT:
             if (!clawFullyExtended) {
                 extendClaw(FULL_EXTEND);
             }
             Serial2Pi.println("Claw partial retracting");
             clawFullyExtended = false;
             clawFullyRetracted = false;
+            clawDropoffRetracted = false;
             clawExtMotor->driveReverse(clawExtSpeed);
-            delay(clawPartRetractTime); // allow motor to run
-            clawPartRetracted = true;
+            vTaskDelay(pdMS_TO_TICKS(clawDefaultRetractTime)); // allow motor to run
+            clawDefaultRetracted = true;
             clawExtMotor->stopMotor();
             Serial2Pi.println("Claw partially retracted");
+            break;
+        case DROPOFF_RETRACT:
+            if (!clawFullyExtended) {
+                extendClaw(FULL_EXTEND);
+            }
+            Serial2Pi.println("Claw partial retracting");
+            clawFullyExtended = false;
+            clawFullyRetracted = false;
+            clawDefaultRetracted = false;
+            clawExtMotor->driveReverse(clawExtSpeed);
+            vTaskDelay(pdMS_TO_TICKS(clawDropoffRetractTime)); // allow motor to run
+            clawDropoffRetracted = true;
+            clawExtMotor->stopMotor();
+            Serial2Pi.println("Claw partially retracted");
+            break;
     }
 }
 
 void closeClaw(bool close) {
     if (close) {
         clawCloseServo->rotateTo(clawClosedPos);
-        Serial.println("claw closing");
+        // Serial.println("claw closing");
     } else {
         clawCloseServo->rotateTo(clawOpenPos);
-        Serial.println("claw opening");
+        // Serial.println("claw opening");
     }
 }
 
@@ -194,18 +213,21 @@ void pickUpPet() {
         moveCarriage(false);
     }
 
+    closeClaw(false);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
     extendClaw(FULL_EXTEND); // may hardcode distances for each pet
     // before this, the claw should be at partial retraction
-    delay(20);
-    closeClaw(true);
-    delay(2000); //time for the pet to be grabbed
+    vTaskDelay(pdMS_TO_TICKS(20));
+    clawCloseServo->rotateTo(clawClosedPos);
+    vTaskDelay(pdMS_TO_TICKS(3000)); //time for the pet to be grabbed
     petsPickedUp++;
     Serial2Pi.printf("Pet picked up!\n");
 
     if (run && petsPickedUp==0) { // hardcoding for pet #1 on the surface
         moveCarriage(true);
         turretServo->rotateTo(180);
-        delay(2000);
+        vTaskDelay(pdMS_TO_TICKS(2000));
         speed=defaultSpeed;
         vTaskResume(drive_handle);
         xTaskNotifyGive(drop_first_pet_handle);
@@ -219,7 +241,7 @@ void dropPetInBasket() {
         moveCarriage(true);
     }
     
-    extendClaw(PART_RETRACT); // retract claw partially for dropoff
+    extendClaw(DROPOFF_RETRACT); // retract claw partially for dropoff
 
     int servoRotateTime;
     if (turretServo->getPosition() < turretForwardPos) {
@@ -228,14 +250,14 @@ void dropPetInBasket() {
         servoRotateTime = 1000;
     }
     //turretServo->rotateTo(360,servoRotateTime); //rotate to max angle over some amount of time
-    turretServo->rotateTo(360);
-    delay(4000);
+    turretServo->rotateTo(turretMaxRightPos);
+    vTaskDelay(pdMS_TO_TICKS(2000));
     closeClaw(false); // open claw
-    delay(4000); // give time to drop pet
+    vTaskDelay(pdMS_TO_TICKS(2000)); // give time to drop pet
 
     extendClaw(FULL_RETRACT); // retract after drop
-    turretServo->rotateTo(270); // rotate back to right-facing position
-    extendClaw(PART_RETRACT); // go back to default partial retraction position
+    turretServo->rotateTo(turretForwardPos+90); // rotate back to right-facing position
+    extendClaw(DEFAULT_RETRACT); // go back to default partial retraction position
     if(petsPickedUp < 6) {
         prepareForNextPickup();
     } else { // full turn - may change the conditional
@@ -252,34 +274,27 @@ void prepareForNextPickup() {
     moveCarriage(heightsForPickup[petsPickedUp]);
     // now claw should be open, carriage should be set for next pickup and rotated properly
     speed=defaultSpeed;
-    //vTaskResume(drive_handle);
+    vTaskResume(drive_handle);
 }
 
 void testRotation() {    
-    turretServo->rotateTo(180);
+    turretServo->rotateTo(turretForwardPos);
     delay(2000);
 
-    turretServo->rotateBy(-45);
+    turretServo->rotateBy(-55);
     delay(2000);
 
-    turretServo->rotateBy(-45);
+    turretServo->rotateTo(turretForwardPos);
     delay(2000);
 
-    turretServo->rotateBy(-10);
+    turretServo->rotateBy(45);
     delay(2000);
-/*
-    // turretServo->rotateTo(180);
-    // delay(2000);
 
-    // turretServo->rotateBy(90);
-    // delay(2000);
+    turretServo->rotateBy(45);
+    delay(2000);
 
-    // turretServo->rotateBy(60);
-    // delay(2000);
-
-    // turretServo->rotateTo(180);
-    // delay(2000);
-    */
+    turretServo->rotateTo(turretForwardPos);
+    delay(2000);
 }
 
 /**
@@ -350,7 +365,7 @@ bool pollSwitch(uint32_t switch_id) {
             Serial2Pi.println("Still waiting for switch to hit..."); // prints every 2s
         }
         count++;
-        delay(switchPollFrequency);
+        vTaskDelay(pdMS_TO_TICKS(switchPollFrequency));
     }
     return true; // when switch hits
 }
@@ -381,12 +396,15 @@ void home()
     //extends claw, then moves carriage down then back up, then retracts claw
     extendClaw(FULL_EXTEND);
     turretServo->rotateTo(turretForwardPos);
-    delay(500);
+    vTaskDelay(pdMS_TO_TICKS(500));
     moveCarriage(true);
     moveCarriage(false); // carriage low at start
-    extendClaw(PART_RETRACT); // claw at full retraction at start
+    extendClaw(DEFAULT_RETRACT); // claw at full retraction at start
 
     clawCloseServo->rotateTo(clawOpenPos);
+    xTaskNotifyGive(drive_handle);
+    xTaskNotifyGive(read_uart_handle);
+    vTaskDelete(NULL);
 }
 
 // freeRTOS tasks
@@ -403,13 +421,13 @@ void drive_task(void *parameters)
     }
     for (;;) {
         robot->drivePID(speed);
-        if (/*run && */millis() - startTime > 5000)
+        if (run && millis() - startTime > 5000)
         {
-            xTaskNotifyGive(full_turn_handle);
-            Serial.println("WAITING FOR NOTIF");
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+            // xTaskNotifyGive(full_turn_handle);
+            // Serial.println("WAITING FOR NOTIF");
+            // ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
             startTime = millis();
-            Serial.println("RECEIVED NOTIF");
+            // Serial.println("RECEIVED NOTIF");
         }
         vTaskDelay(pdMS_TO_TICKS(2));
     }
@@ -422,10 +440,10 @@ void drive_task(void *parameters)
  void drop_off_first_pet_task(void* parameters) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
-    vTaskDelay(4000);
+    vTaskDelay(pdMS_TO_TICKS(4000));
     // rotate to over the ramp
-    turretServo->rotateTo(45);
-    vTaskDelay(1000);
+    turretServo->rotateTo(turretMaxLeftPos);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     clawCloseServo->rotateTo(clawOpenPos);
 
     xTaskNotifyGive(&drive_handle);
@@ -450,6 +468,9 @@ void home_task(void *parameters)
     vTaskDelete(NULL);
 }
 
+/**
+ * reads info from pi
+ */
 void read_uart_task(void *parameters) {
     char line[maxLineLength];
     int lineIdx=0;
@@ -513,7 +534,7 @@ void detect_task(void *parameters)
     // detection code for determining pet location
     PetInfo petInfo;
     while(1) {
-        if (xQueueReceive(petInfoQueue,&petInfo,portMAX_DELAY)==pdPASS) {        
+        if (xQueueReceive(petInfoQueue,&petInfo,portMAX_DELAY)==pdPASS) { // new data received      
             int currentAngle=turretServo->getPosition();
             Serial2Pi.printf("servo angle: %d\n",currentAngle);
 
@@ -522,10 +543,10 @@ void detect_task(void *parameters)
 
             // check if angle is correct (off forward direction by at least 80 deg)
             int angleThreshold, stopDriveThreshold;
-            if (run && petsPickedUp == 0){
+            if (run && petsPickedUp == 0){ // hardcoded angle for pet 1
                 angleThreshold = pet1AngleThreshold;
                 stopDriveThreshold = pet1StopDriveThreshold;
-            } else {
+            } else { // default including for testing
                 angleThreshold = defaultAngleThreshold;
                 stopDriveThreshold = defaultStopDriveThreshold;
             }
@@ -549,23 +570,26 @@ void detect_task(void *parameters)
                 Serial2Pi.printf("Angle past threshold\n");
             }
 
-            if (clawCentered && closeEnough && anglePastThreshold && pickupNext) {
+            if (pickupNext) {
+                // pickupNext is only triggered by the previous frame being good enough for pickup
                 vTaskSuspend(read_uart_handle);
                 turretServo->rotateBy((int)(round(petInfo.angleFromCenter)));
-                vTaskDelay(400);
+                vTaskDelay(pdMS_TO_TICKS(400)); // allow rotation to happen
                 Serial2Pi.printf("Initiating pickup!\n");
-                // pickUpPet();
+                pickUpPet(); // UNCOMMENT FOR PICKUP
 
-                Serial2Pi.printf("Pet picked up!\n");
-                vTaskDelay(pdMS_TO_TICKS(3000)); // allow robot to start going again before detect task restarts
-                speed=defaultSpeed;
-                vTaskResume(drive_handle);
+                // COMMENT THIS BLOCK IF PICKING UP (this basically replaces pickUpPet())
+                // Serial2Pi.printf("Pet picked up!\n");
+                // vTaskDelay(pdMS_TO_TICKS(3000)); // allow robot to start going again before detect task restarts
+                // speed=defaultSpeed;
+                // vTaskResume(drive_handle);
 
                 pickupNext=false;
                 clearUART();
                 if(!(run && petsPickedUp==1)) {
                     vTaskResume(read_uart_handle);
                 }
+            // almost good for pickup (lined up), just stop and wait one more frame
             } else if ((clawCentered && closeEnough && anglePastThreshold) ||
                         (closeEnough && anglePastStopDriveThreshold)) {
                 Serial2Pi.printf("Pickup on next frame\n");
@@ -578,9 +602,11 @@ void detect_task(void *parameters)
                 int rotationAmount = (int)(round(petInfo.angleFromCenter*rotateKP));
                 Serial2Pi.printf("Rotating turret by %d\n",rotationAmount);
                 turretServo->rotateBy(rotationAmount);
-                int tempSpeedCeiling = (int)(-petInfo.petArea+4500.0); // arbitrary function for now, decreases speed as pet draws closer
+
+                int tempSpeedCeiling = (int)(-petInfo.petArea+4500.0); // decreases speed as pet draws closer
                 int currentSpeed = speed;
-                tempSpeedCeiling=max(tempSpeedCeiling,minDriveSpeed); // make sure speed is positive
+                // to constrain speed between min and max speeds
+                tempSpeedCeiling=max(tempSpeedCeiling,minDriveSpeed);
                 speed=min(currentSpeed,tempSpeedCeiling);
                 Serial2Pi.printf("Still driving. Robot speed: %d\n",speed);
             }
@@ -595,9 +621,9 @@ void drop_first_pet_task(void *parameters) {
 
     vTaskSuspend(drive_handle);
 
-    turretServo->rotateTo(90);
+    turretServo->rotateTo(turretMaxLeftPos);
     closeClaw(false);
-    vTaskDelay(2000);
+    vTaskDelay(pdMS_TO_TICKS(2000));
     turretServo->rotateTo(turretPosAfterFirstDrop);
 
     clearUART();
@@ -612,7 +638,7 @@ void full_turn_task(void *parameters) {
 
         robot -> driveLeftMotor(1500,0);
         robot -> driveRightMotor(1500,1);
-        vTaskDelay(2000);
+        vTaskDelay(pdMS_TO_TICKS(2000));
 
         for(;;) {
             if (rightIRSensor->read() > thresholdR)  {
@@ -627,13 +653,13 @@ void full_turn_task(void *parameters) {
     }
     }
 
+
 void setup()
 {
-    // serial++++++++++++++++++++++++++
-    // Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
-    // Serial2Pi.write("Hello from the ESP32!");
-    // petInfoQueue = xQueueCreate(1, sizeof(PetInfo));
-    Serial.begin(9600);
+    Serial2Pi.begin(115200, SERIAL_8N1, RXPin, TXPin);
+    Serial2Pi.write("Hello from the ESP32!");
+    petInfoQueue = xQueueCreate(1, sizeof(PetInfo));
+    // Serial.begin(9600);
     // motor/servo setup
     rightMotor = new Motor(rightPwmChannelFwd, rightDriveFwdPin, rightPwmChannelBwd, rightDriveBwdPin);
     leftMotor = new Motor(leftPwmChannelFwd, leftDriveFwdPin, leftPwmChannelBwd, leftDriveBwdPin);
@@ -665,38 +691,38 @@ void setup()
             &drop_first_pet_handle // task handle
         );
     }
-    // xTaskCreate(
-    //     detect_task,   // function to be run
-    //     "Detecting",   // description of task
-    //     4096,          // bytes allocated to this stack
-    //     NULL,          // parameters, dependent on function
-    //     1,             // priority
-    //     &detect_handle // task handle
-    // );
-    // xTaskCreate(
-    //     read_uart_task,   // function to be run
-    //     "Read UART",   // description of task
-    //     4096,          // bytes allocated to this stack
-    //     NULL,          // parameters, dependent on function
-    //     1,             // priority
-    //     &read_uart_handle // task handle
-    // // );
+    xTaskCreate(
+        detect_task,   // function to be run
+        "Detecting",   // description of task
+        4096,          // bytes allocated to this stack
+        NULL,          // parameters, dependent on function
+        1,             // priority
+        &detect_handle // task handle
+    );
+    xTaskCreate(
+        read_uart_task,   // function to be run
+        "Read UART",   // description of task
+        4096,          // bytes allocated to this stack
+        NULL,          // parameters, dependent on function
+        1,             // priority
+        &read_uart_handle // task handle
+    );
     xTaskCreate(
         drive_task,   // function to be run
         "Driving",    // description of task
-        4096*4,         // bytes allocated to this 
+        4096,         // bytes allocated to this 
         NULL,         // parameters, dependent on function
         1,            // priority
         &drive_handle // task handle
     );
-    xTaskCreate(
-        full_turn_task,
-        "Turning",
-        4096*2,
-        nullptr,
-        1,
-        &full_turn_handle
-    );
+    // xTaskCreate(
+    //     full_turn_task,
+    //     "Turning",
+    //     4096*2,
+    //     nullptr,
+    //     1,
+    //     &full_turn_handle
+    // );
 }
 
 void loop()
@@ -711,8 +737,8 @@ void loop()
     // turretServo->rotateTo(360);
     // delay(2000);
     // testRotation();
-    //  pickUpPet();
-    //  delay(3000);
+    // pickUpPet();
+    // delay(3000);
     // turretServo -> rotateTo(180);
 
     // delay(3000);
@@ -732,20 +758,20 @@ void loop()
     // delay(1000);
 
     // closeClaw(true);
-    // delay(1000); 
+    // delay(3000); 
     // closeClaw(false);
-    // delay(1000);
+    // delay(3000);
 
     // extendClaw(FULL_EXTEND);
     // delay(2000);
     // extendClaw(FULL_RETRACT);
-    // delay(2000);
+    // delay(1500);
     // closeClaw(true);
     // delay(2000);
     // closeClaw(false);
     // delay(2000);
-    // extendClaw(PART_RETRACT);
-    // delay(5000);
+    // extendClaw(DEFAULT_RETRACT);
+    // delay(3000);
         // PUT TEST CODE HERE
 
         // if (!rotationTested) {
