@@ -21,7 +21,7 @@ TaskHandle_t drop_first_pet_handle = nullptr;
 
 
 // TRUE IF RUNNING ON COMP SURFACE, FALSE IF TESTING
-bool run = true;
+bool run = false;
 
 // initialize serial port for Pi communication
 HardwareSerial Serial2Pi(0); // for UART 0
@@ -218,17 +218,17 @@ void pickUpPet() {
 
     extendClaw(FULL_EXTEND); // may hardcode distances for each pet
     // before this, the claw should be at partial retraction
-    vTaskDelay(pdMS_TO_TICKS(20));
+    vTaskDelay(pdMS_TO_TICKS(300));
     clawCloseServo->rotateTo(clawClosedPos);
-    vTaskDelay(pdMS_TO_TICKS(3000)); //time for the pet to be grabbed
+    vTaskDelay(pdMS_TO_TICKS(2500)); //time for the pet to be grabbed
     petsPickedUp++;
     Serial2Pi.printf("Pet picked up!\n");
 
-    if (run && petsPickedUp==0) { // hardcoding for pet #1 on the surface
+    if (run && petsPickedUp==1) { // hardcoding for pet #1 on the surface
         moveCarriage(true);
-        turretServo->rotateTo(180);
+        turretServo->rotateTo(turretMaxLeftPos);
         vTaskDelay(pdMS_TO_TICKS(2000));
-        speed=defaultSpeed;
+        speed=defaultSpeed2;
         vTaskResume(drive_handle);
         xTaskNotifyGive(drop_first_pet_handle);
     } else { // all other cases
@@ -258,12 +258,12 @@ void dropPetInBasket() {
     extendClaw(FULL_RETRACT); // retract after drop
     turretServo->rotateTo(turretForwardPos+90); // rotate back to right-facing position
     extendClaw(DEFAULT_RETRACT); // go back to default partial retraction position
-    if(petsPickedUp < 6) {
+    if(!run) {
         prepareForNextPickup();
-    } else { // full turn - may change the conditional
+    } else { // full turn after second pickup
         speed=defaultSpeed;
         Serial2Pi.println("Turning around");
-        //xTaskNotifyGive(full_turn_handle);
+        xTaskNotifyGive(&full_turn_handle);
     }
 }
 
@@ -401,7 +401,7 @@ void home()
     moveCarriage(false); // carriage low at start
     extendClaw(DEFAULT_RETRACT); // claw at full retraction at start
 
-    clawCloseServo->rotateTo(clawOpenPos);
+    clawCloseServo->rotateTo(clawClosedPos);
     xTaskNotifyGive(drive_handle);
     xTaskNotifyGive(read_uart_handle);
     vTaskDelete(NULL);
@@ -432,24 +432,6 @@ void drive_task(void *parameters)
         vTaskDelay(pdMS_TO_TICKS(2));
     }
 }
-
-/**
- * drop off first pet
- */
-
- void drop_off_first_pet_task(void* parameters) {
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-    vTaskDelay(pdMS_TO_TICKS(4000));
-    // rotate to over the ramp
-    turretServo->rotateTo(turretMaxLeftPos);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    clawCloseServo->rotateTo(clawOpenPos);
-
-    xTaskNotifyGive(&drive_handle);
-    //vTaskDelete();
-
- }
 
 /**
  * this is a one-time task that activates the homing sequence, after which it puts the robot in idle mode. It also
@@ -559,6 +541,9 @@ void detect_task(void *parameters)
             // check if claw is centered on pet
             clawCentered = abs(petInfo.angleFromCenter) < clawCenterThreshold; 
 
+            if (petInfo.petArea > 1200) {
+                clawCloseServo->rotateTo(clawOpenPos);
+            }
             // check if ready for pickup
             if (clawCentered) {
                 Serial2Pi.printf("Claw centered\n");
@@ -586,7 +571,7 @@ void detect_task(void *parameters)
 
                 pickupNext=false;
                 clearUART();
-                if(!(run && petsPickedUp==1)) {
+                if(!(run)) {
                     vTaskResume(read_uart_handle);
                 }
             // almost good for pickup (lined up), just stop and wait one more frame
@@ -617,11 +602,12 @@ void detect_task(void *parameters)
 
 void drop_first_pet_task(void *parameters) {
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // wait until switch poll finishes
-    vTaskDelay(timeBeforePetDrop);
+    vTaskDelay(pdMS_TO_TICKS(timeBeforePetDrop));
 
     vTaskSuspend(drive_handle);
 
     turretServo->rotateTo(turretMaxLeftPos);
+    vTaskDelay(pdMS_TO_TICKS(1000));
     closeClaw(false);
     vTaskDelay(pdMS_TO_TICKS(2000));
     turretServo->rotateTo(turretPosAfterFirstDrop);
@@ -690,38 +676,39 @@ void setup()
             1,             // priority
             &drop_first_pet_handle // task handle
         );
+        xTaskCreate(
+            full_turn_task,
+            "Turning",
+            4096,
+            nullptr,
+            1,
+            &full_turn_handle
+        );
+
     }
-    xTaskCreate(
-        detect_task,   // function to be run
-        "Detecting",   // description of task
-        4096,          // bytes allocated to this stack
-        NULL,          // parameters, dependent on function
-        1,             // priority
-        &detect_handle // task handle
-    );
-    xTaskCreate(
-        read_uart_task,   // function to be run
-        "Read UART",   // description of task
-        4096,          // bytes allocated to this stack
-        NULL,          // parameters, dependent on function
-        1,             // priority
-        &read_uart_handle // task handle
-    );
-    xTaskCreate(
-        drive_task,   // function to be run
-        "Driving",    // description of task
-        4096,         // bytes allocated to this 
-        NULL,         // parameters, dependent on function
-        1,            // priority
-        &drive_handle // task handle
-    );
     // xTaskCreate(
-    //     full_turn_task,
-    //     "Turning",
-    //     4096*2,
-    //     nullptr,
-    //     1,
-    //     &full_turn_handle
+    //     detect_task,   // function to be run
+    //     "Detecting",   // description of task
+    //     4096,          // bytes allocated to this stack
+    //     NULL,          // parameters, dependent on function
+    //     1,             // priority
+    //     &detect_handle // task handle
+    // );
+    // xTaskCreate(
+    //     read_uart_task,   // function to be run
+    //     "Read UART",   // description of task
+    //     4096,          // bytes allocated to this stack
+    //     NULL,          // parameters, dependent on function
+    //     1,             // priority
+    //     &read_uart_handle // task handle
+    // );
+    // xTaskCreate(
+    //     drive_task,   // function to be run
+    //     "Driving",    // description of task
+    //     4096,         // bytes allocated to this 
+    //     NULL,         // parameters, dependent on function
+    //     1,            // priority
+    //     &drive_handle // task handle
     // );
 }
 
@@ -757,10 +744,10 @@ void loop()
     // Serial.println(carriageHigh);
     // delay(1000);
 
-    // closeClaw(true);
-    // delay(3000); 
-    // closeClaw(false);
-    // delay(3000);
+    closeClaw(true);
+    delay(2000); 
+    closeClaw(false);
+    delay(2000);
 
     // extendClaw(FULL_EXTEND);
     // delay(2000);
