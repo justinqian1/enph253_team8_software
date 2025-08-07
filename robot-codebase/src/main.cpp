@@ -249,9 +249,9 @@ void dropPetInBasket() {
     } else {
         servoRotateTime = 1000;
     }
-    //turretServo->rotateTo(360,servoRotateTime); //rotate to max angle over some amount of time
-    turretServo->rotateTo(turretMaxRightPos);
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    turretServo->rotateTo(360,servoRotateTime); //rotate to max angle over some amount of time
+    //turretServo->rotateTo(360);
+    delay(4000);
     closeClaw(false); // open claw
     vTaskDelay(pdMS_TO_TICKS(2000)); // give time to drop pet
 
