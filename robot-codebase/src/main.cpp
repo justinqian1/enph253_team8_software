@@ -401,9 +401,11 @@ void drive_task(void *parameters)
     }
     for (;;) {
         robot->drivePID(speed);
-        if (run && millis() - startTime > 90000)
+        if (/*run && */millis() - startTime > 7000)
         {
+            startTime = millis();
             xTaskNotifyGive(&full_turn_handle);
+
         }
         vTaskDelay(pdMS_TO_TICKS(2));
     }
@@ -583,6 +585,8 @@ void drop_first_pet_task(void *parameters) {
 }
 
 void full_turn_task(void *parameters) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
     vTaskSuspend(&drive_handle);
 
     robot -> driveLeftMotor(4095,0);
@@ -596,6 +600,8 @@ void full_turn_task(void *parameters) {
         }
         vTaskDelay(pdMS_TO_TICKS(2));
     }
+
+    vTaskResume(&drive_handle);
 }
 
 void setup()
@@ -682,8 +688,8 @@ void loop()
     // turretServo->rotateTo(360);
     // delay(2000);
     // testRotation();
-    pickUpPet();
-    delay(4000);
+    // pickUpPet();
+    // delay(4000);
     // if(petsPickedUp > 5) {
     //     petsPickedUp=0;
     // }
